@@ -20,6 +20,7 @@ Serwer ma obsługiwać następujące polecenia (i zwracać odpowiedź w JSONie).
 #         else:
 #             self.server_sock = server_sock
 #         self.version = version
+#         self.build_date = "01.05.2024"
 #         self.start_time = datetime.now().strftime("%Y-%m-%d %H:%M")
 #         self.commands = {
 #             "info": "display server version and build date",
@@ -81,24 +82,29 @@ commands = {
     "close": "stop server and client",
     "uptime": "display server uptime"
 }
+welcome_msg = {"msg": "Welcome. Enter Command"}
 host = "127.0.0.1"
 port = 65000
+ver = "1.0.0"
+build_date = "2024-05-01"
 server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 with server_sock as s:
     s.bind((host, port))
     s.listen()
+    start_time = datetime.now()
     print(f"Listening on {host}:{port}")
     while True:
         connection, address = s.accept()
         print(f"Accepted connection from {address[0]}:{address[1]}")
-        # connection.send(bytes(json.dumps("Welcome. What would you like to do?"), "utf-8"))
-        connection.send(bytes(json.dumps(commands), "utf-8"))
+        initial_msg = welcome_msg.update(commands)
+        print(initial_msg)
+        connection.send(bytes(json.dumps(initial_msg), "utf-8"))
         while True:
             client_msg = (json.loads(connection.recv(1024).decode("utf-8")))
             if client_msg in commands.keys():
                 match client_msg:
                     case "info":
-                        connection.send(bytes(json.dumps("Sending Info"), "utf-8"))
+                        connection.send(bytes(json.dumps({"version": ver, "build": build_date}), "utf-8"))
                         print("Sent info")
                     case "uptime":
                         connection.send(bytes(json.dumps("Sending uptime"), "utf-8"))
@@ -110,9 +116,18 @@ with server_sock as s:
                         connection.send(bytes(json.dumps("Shutting connection..."), "utf-8"))
                         print("Shutting down...")
                         sleep(2)
-                        connection.shutdown(socket.SHUT_WR)
+                        connection.shutdown(socket.SHUT_RDWR)
                         connection.close()
                         exit()
 
             else:
                 connection.send(bytes(json.dumps("Invalid request"), "utf-8"))
+
+
+def show_uptime():
+    pass
+
+
+# message delimiting
+# calc uptime
+# send two consecutive messages
