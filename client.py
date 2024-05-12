@@ -1,5 +1,6 @@
 import json
 import socket
+from message import Message
 
 
 # class Client:
@@ -39,41 +40,31 @@ decoded_msg = (json.loads(msg))
 print(decoded_msg)
 
 valid_requests = ["info", "help", "uptime", "close"]
-# when close called need to break out of the main loop
-# winn err 10057
 while True:
     client_request = input("Enter command: ")
+    client_msg = Message(client_request)
     while True:
         try:
-            if client_request in valid_requests:
+            if client_msg.msg_text in valid_requests[:2]:
+                client_sock.send(bytes(client_msg.write(), "utf-8"))
+                server_response = (json.loads(client_sock.recv(1024).decode("utf-8")))
+                for key, value in server_response.items():
+                    print(f"{key} - {value}")
+                break
+            elif client_request in valid_requests[-1]:
                 client_sock.send(bytes(json.dumps(client_request), "utf-8"))
                 server_response = (json.loads(client_sock.recv(1024).decode("utf-8")))
                 print(server_response)
-                break
+                # client_sock.shutdown(socket.SHUT_RDWR)
+                # client_sock.close()
+                exit()
             else:
                 raise ValueError
         except ValueError:
             print("Invalid request. Choose 'info', 'help', 'uptime', 'close' ")
             break
 
-
-    # for command, descr in msg.items():
-    #     print(f"{command} - {descr}")
-    #     while True:
-    #         client_msg = input("Enter command: ").lower()
-    #         if client_msg not in msg.keys():
-    #             print("Invalid choice")
-    #         else:
-    #             client_sock.send(json.dumps(client_msg))
-
-
-    # client.receive_message()
-    # client.print_to_terminal()
-    # choice = input("Enter command: ").lower()
-    # if choice not in client.msg.keys():
-    #     print("Choose another option")
-    # else:
-    #     client.send_message(choice)
+# decode and print commands, info, uptime
 
 
 
