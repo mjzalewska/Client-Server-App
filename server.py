@@ -18,7 +18,7 @@ class Server:
         self.commands = {
             "info": "display server version and build date",
             "help": "display available commands",
-            "stop": "stop server and client",
+            "close": "stop server and client",
             "uptime": "display server uptime"
         }
         self.connection = None
@@ -38,6 +38,8 @@ class Server:
 
     def receive(self):
         message = json.loads(self.connection.recv(1024).decode("utf-8"))
+        print(message)
+        print(type(message))
         return message
 
     def calculate_uptime(self):
@@ -65,6 +67,7 @@ class Server:
                         sleep(2)
                         self.connection.shutdown(socket.SHUT_RDWR)
                         self.connection.close()
+                        break
             else:
                 self.send("Invalid request")
 
@@ -73,6 +76,5 @@ if __name__ == "__main__":
     server = Server(65000)
     server.run()
 
-# error handling in send, receive, start???
-# message delimiting
-# send two consecutive messages
+# error handling in send, receive, start???, Jsondecoderror
+# message delimiting + send two consecutive messages
