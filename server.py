@@ -3,14 +3,6 @@ import socket
 from datetime import datetime, timedelta
 from time import sleep
 
-"""
-Serwer ma obsługiwać następujące polecenia (i zwracać odpowiedź w JSONie).
-""uptime"" - zwraca czas życia serwera
-""info"" - zwraca numer wersji serwera, datę jego utworzenia
-""help"" - zwraca listę dostępnych komend z krótkim opisem (tych komend, z tej listy, którą właśnie czytasz, czyli inaczej, komend realizowanych przez serwer)
-""stop"" - zatrzymuje jednocześnie serwer i klienta
-"""
-
 
 class Server:
     def __init__(self, port, server_sock=None):
@@ -62,14 +54,11 @@ class Server:
                 match client_msg:
                     case "info":
                         self.send({"version": self.version, "build": self.build_date})
-                        print("Sent info")
                     case "uptime":
                         uptime = self.calculate_uptime()
-                        self.send(uptime)
-                        print("Sent uptime")
+                        self.send({"server uptime (hh:mm:ss)": uptime})
                     case "help":
                         self.send(self.commands)
-                        print("Sent commands")
                     case "close":
                         self.send("Shutting connection...")
                         print("Shutting down...")
