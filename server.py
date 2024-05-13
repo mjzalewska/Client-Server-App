@@ -38,8 +38,6 @@ class Server:
 
     def receive(self):
         message = json.loads(self.connection.recv(1024).decode("utf-8"))
-        print(message)
-        print(type(message))
         return message
 
     def calculate_uptime(self):
@@ -52,7 +50,7 @@ class Server:
         self.start_server()
         while True:
             client_msg = self.receive()
-            if client_msg in self.commands.keys():
+            if client_msg.casefold() in self.commands.keys():
                 match client_msg:
                     case "info":
                         self.send({"version": self.version, "build": self.build_date})
