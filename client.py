@@ -63,11 +63,12 @@ class Client:
                         break
             except ValueError:
                 print("Invalid request!")
+            except Exception as e:
+                print(e)
 
 
 if __name__ == "__main__":
     client = Client("127.0.0.1", 65000)
     client.run()
 
-# server response + cls screen
-# read multiple messages
+
