@@ -31,7 +31,8 @@ class Server:
             print(f"Listening on {self.host}:{self.port}")
             self.connection, self.address = s.accept()
             print(f"Accepted connection from {self.address[0]}:{self.address[1]}")
-            self.send(f"Successfully connected to {self.host}")
+            self.send({"Successfully connected to": self.host,
+                       "Host commands": ", ".join([f"\n{key}: {value}" for key, value in self.commands.items()])})
 
     def send(self, msg):
         self.connection.send(bytes(json.dumps(msg), "utf-8"))
@@ -74,5 +75,5 @@ if __name__ == "__main__":
     server = Server(65000)
     server.run()
 
-# error handling in send, receive, start???, Jsondecoderror
-# message delimiting + send two consecutive messages
+# json.decoder.JSONDecodeError - tam gdzie metody jsonowe
+# connection error
