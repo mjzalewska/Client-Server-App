@@ -50,19 +50,17 @@ class Client:
         while True:
             try:
                 server_response = self.receive()
-                if server_response == "Invalid request":
-                    raise ValueError
-                else:
-                    self.print_to_terminal(server_response)
-                    request = input("Enter command: ")
-                    self.send(request)
-                    self.clr_screen()
-                    if request == "close":
-                        self.client_sock.shutdown(socket.SHUT_RDWR)
-                        self.client_sock.close()
-                        break
-            except ValueError:
-                print("Invalid request!")
+                self.print_to_terminal(server_response)
+                request = input("Enter command: ")
+                self.send(request)
+                self.clr_screen()
+                if request == "close":
+                    self.client_sock.close()
+                    break
+                    # exit()
+            except ConnectionError:
+                print("Connection to the host has been lost")
+                exit()
             except Exception as e:
                 print(e)
 
@@ -70,5 +68,3 @@ class Client:
 if __name__ == "__main__":
     client = Client("127.0.0.1", 65000)
     client.run()
-
-
