@@ -35,11 +35,19 @@ class Server:
                        "Host commands": ", ".join([f"\n{key}: {value}" for key, value in self.commands.items()])})
 
     def send(self, msg):
-        self.connection.send(bytes(json.dumps(msg), "utf-8"))
+        try:
+            self.connection.send(bytes(json.dumps(msg), "utf-8"))
+        except json.decoder.JSONDecodeError:
+            print("Invalid message format")
+            exit()
 
     def receive(self):
-        message = json.loads(self.connection.recv(1024).decode("utf-8"))
-        return message
+        try:
+            message = json.loads(self.connection.recv(1024).decode("utf-8"))
+            return message
+        except json.decoder.JSONDecodeError:
+            print("Invalid message format")
+            exit()
 
     def calculate_uptime(self):
         request_time = datetime.now()
@@ -50,30 +58,34 @@ class Server:
     def run(self):
         self.start_server()
         while True:
-            client_msg = self.receive()
-            if client_msg.casefold() in self.commands.keys():
-                match client_msg:
-                    case "info":
-                        self.send({"version": self.version, "build": self.build_date})
-                    case "uptime":
-                        uptime = self.calculate_uptime()
-                        self.send({"server uptime (hh:mm:ss)": uptime})
-                    case "help":
-                        self.send(self.commands)
-                    case "close":
-                        self.send("Shutting connection...")
-                        print("Shutting down...")
-                        sleep(2)
-                        self.connection.shutdown(socket.SHUT_RDWR)
-                        self.connection.close()
-                        break
-            else:
-                self.send("Invalid request")
+            while True:
+                try:
+                    client_msg = self.receive()
+                    if client_msg.casefold() in self.commands.keys():
+                        match client_msg:
+                            case "info":
+                                self.send({"version": self.version, "build": self.build_date})
+                            case "uptime":
+                                uptime = self.calculate_uptime()
+                                self.send({"server uptime (hh:mm:ss)": uptime})
+                            case "help":
+                                self.send(self.commands)
+                            case "close":
+                                print("Shutting down...")
+                                sleep(2)
+                                self.connection.close()
+                                exit()
+                    else:
+                        self.send("Unknown request")
+                except ConnectionError:
+                    print("Connection to the host has been lost!")
+                    exit()
+                except Exception as e:
+                    print(e)
+                    exit()
 
 
 if __name__ == "__main__":
     server = Server(65000)
     server.run()
 
-# json.decoder.JSONDecodeError - tam gdzie metody jsonowe
-# connection error
