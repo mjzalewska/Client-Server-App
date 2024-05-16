@@ -57,7 +57,6 @@ class Client:
                 if request == "close":
                     self.client_sock.close()
                     break
-                    # exit()
             except ConnectionError:
                 print("Connection to the host has been lost")
                 exit()
