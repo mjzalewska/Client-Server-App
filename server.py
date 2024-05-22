@@ -15,11 +15,16 @@ class Server:
         self.version = "1.0.0"
         self.build_date = "2023-05-13"
         self.start_time = datetime.now()
-        self.commands = {
+        self.admin_commands = {
             "info": "display server version and build date",
-            "help": "display available commands",
+            "help": "display available admin_commands",
             "close": "stop server and client",
             "uptime": "display server uptime"
+        }
+        self.general_commands = {
+            "sign-in": "log in",
+            "register": "add a new account",
+            "sign-out": "log out"
         }
         self.connection = None
         self.address = None
@@ -31,8 +36,8 @@ class Server:
             print(f"Listening on {self.host}:{self.port}")
             self.connection, self.address = s.accept()
             print(f"Accepted connection from {self.address[0]}:{self.address[1]}")
-            self.send({"Successfully connected to": self.host,
-                       "Host commands": ", ".join([f"\n{key}: {value}" for key, value in self.commands.items()])})
+            self.send({f"Successfully connected to": {self.host},
+                       "Actions": ", ".join([f"\n{key}: {value}" for key, value in self.general_commands.items()])})
 
     def send(self, msg):
         try:
@@ -55,30 +60,45 @@ class Server:
         uptime_val = str(timedelta(seconds=time_diff))
         return uptime_val
 
+    def log_in(self):
+        pass
+
+    def log_out(self):
+        pass
+
+    def add_user(self):
+        pass
+
+    def remove_user(self):
+        pass
+
+    def run_admin_commands(self, command):
+        if command.casefold() in self.admin_commands.keys():
+            match command:
+                case "info":
+                    self.send({"version": self.version, "build": self.build_date})
+                case "uptime":
+                    uptime = self.calculate_uptime()
+                    self.send({"server uptime (hh:mm:ss)": uptime})
+                case "help":
+                    self.send(self.admin_commands)
+                case "close":
+                    print("Shutting down...")
+                    sleep(2)
+                    self.connection.close()
+                    exit()
+        else:
+            self.send("Unknown request")
+
     def run(self):
         self.start_server()
         while True:
             while True:
                 try:
                     client_msg = self.receive()
-                    if client_msg.casefold() in self.commands.keys():
-                        match client_msg:
-                            case "info":
-                                self.send({"version": self.version, "build": self.build_date})
-                            case "uptime":
-                                uptime = self.calculate_uptime()
-                                self.send({"server uptime (hh:mm:ss)": uptime})
-                            case "help":
-                                self.send(self.commands)
-                            case "close":
-                                print("Shutting down...")
-                                sleep(2)
-                                self.connection.close()
-                                exit()
-                    else:
-                        self.send("Unknown request")
+                    self.run_admin_commands(client_msg)
                 except ConnectionError:
-                    print("Connection to the host has been lost!")
+                    print("Connection has been lost!")
                     exit()
                 except Exception as e:
                     print(e)
@@ -89,3 +109,6 @@ if __name__ == "__main__":
     server = Server(65000)
     server.run()
 
+# user management (add, remove, log in)
+# sending messages - 5 messages per inbox for regular user, no limit for admin
+# message len limit - 256 chars
