@@ -29,6 +29,7 @@ class Server:
         }
         self.connection = None
         self.address = None
+        self.logged_in = False
 
     def start_server(self):
         with self.server_sock as s:
@@ -68,11 +69,18 @@ class Server:
         else:
             return False
 
-    def log_in(self):
-        pass
+    def log_in(self, user):
+        user_name, password = user
+        if self.does_user_exist(user_name):
+            if DbManager.fetch(user_name)["password"] == password:
+                self.logged_in = True
+                self.send("Logged in successfully")
+        else:
+            self.send("Invalid user name or password")
 
     def log_out(self):
-        pass
+        self.logged_in = False
+        self.send("Logged out successfully")
 
     def add_user(self):
         pass
