@@ -2,6 +2,7 @@ import json
 import socket
 from datetime import datetime, timedelta
 from time import sleep
+from db_manager import DbManager
 
 
 class Server:
@@ -59,6 +60,13 @@ class Server:
         time_diff = (request_time - self.start_time).seconds
         uptime_val = str(timedelta(seconds=time_diff))
         return uptime_val
+
+    @staticmethod
+    def does_user_exist(user_name):
+        if DbManager.fetch(user_name):
+            return True
+        else:
+            return False
 
     def log_in(self):
         pass
