@@ -2,6 +2,7 @@ import json
 import socket
 from datetime import datetime, timedelta
 from time import sleep
+from user import User
 
 
 class Server:
@@ -28,6 +29,8 @@ class Server:
         }
         self.connection = None
         self.address = None
+        # self.user = User()
+        # self.logged_in = False
 
     def start_server(self):
         with self.server_sock as s:
@@ -111,4 +114,5 @@ if __name__ == "__main__":
 
 # user management (add, remove, log in)
 # sending messages - 5 messages per inbox for regular user, no limit for admin
-# message len limit - 256 chars
+# limit exceeded alert for the sender
+# message len limit - 255 chars
