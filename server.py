@@ -23,14 +23,13 @@ class Server:
             "uptime": "display server uptime"
         }
         self.general_commands = {
-            "sign-in": "log in",
+            "sign in": "log in",
             "register": "add a new account",
-            "sign-out": "log out"
+            "sign out": "log out"
         }
         self.connection = None
         self.address = None
-        # self.user = User()
-        # self.logged_in = False
+        self.user = None
 
     def start_server(self):
         with self.server_sock as s:
@@ -63,18 +62,6 @@ class Server:
         uptime_val = str(timedelta(seconds=time_diff))
         return uptime_val
 
-    def log_in(self):
-        pass
-
-    def log_out(self):
-        pass
-
-    def add_user(self):
-        pass
-
-    def remove_user(self):
-        pass
-
     def run_admin_commands(self, command):
         if command.casefold() in self.admin_commands.keys():
             match command:
@@ -95,11 +82,39 @@ class Server:
 
     def run(self):
         self.start_server()
+        self.user = User()
         while True:
             while True:
                 try:
                     client_msg = self.receive()
-                    self.run_admin_commands(client_msg)
+                    if client_msg.casefold() in self.general_commands.keys():
+                        match client_msg:
+                            case "sign in":
+                                self.send("Enter username: ")
+                                user_name = self.receive()
+                                self.send("Enter password: ")
+                                password = self.receive()
+                                if self.user.login(user_name, password):
+                                    pass
+
+                            # ask for credentials (self.send)
+                            # check credentials
+                            # log in
+                            # show screen
+
+                            case "sign out":
+                                self.user.log_out()
+                                self.send("You have successfully logged out!")
+                            # show intro screen or close connection to server
+
+                            case "register":
+                                pass
+                            # show sign up screen - take input
+                            # validate data
+                            # when signed up go to user screen
+                    else:
+                        self.send("Unknown request")
+
                 except ConnectionError:
                     print("Connection has been lost!")
                     exit()
