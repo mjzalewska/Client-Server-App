@@ -49,16 +49,11 @@ class Client:
         self.connect()
         while True:
             try:
-                # ten blok musi się powtarzać
                 server_response = self.receive()
                 self.print_to_terminal(server_response)
                 request = input(">>: ")
                 self.send(request)
                 self.clr_screen()
-                # dotąd powtórka
-
-                # tutaj musi być wiadomość z poleceniem od serwera (while coś, to odbiera)
-                # przesłanie odpowiedzi (user name, password)
                 if request == "close":
                     self.client_sock.close()
                     break

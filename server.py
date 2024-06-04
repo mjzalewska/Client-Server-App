@@ -13,23 +13,29 @@ class Server:
             self.server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         else:
             self.server_sock = server_sock
-        self.version = "1.0.0"
+        self.version = "1.1.0"
         self.build_date = "2023-05-13"
         self.start_time = datetime.now()
+        self.user = None
         self.admin_commands = {
             "info": "display server version and build date",
             "help": "display available admin_commands",
             "close": "stop server and client",
-            "uptime": "display server uptime"
+            "uptime": "display server uptime",
+            "users": "see registered users"
         }
-        self.general_commands = {
-            "sign in": "log in",
-            "register": "add a new account",
-            "sign out": "log out"
-        }
+        if not self.user.logged_in:
+            self.general_commands = {
+                "sign in": "log in",
+                "register": "add a new account"
+            }
+        else:
+            self.general_commands = {
+                "sign out": "log out",
+                "inbox": "go to inbox"
+            }
         self.connection = None
         self.address = None
-        self.user = None
 
     def start_server(self):
         with self.server_sock as s:
@@ -77,6 +83,8 @@ class Server:
                     sleep(2)
                     self.connection.close()
                     exit()
+                case "users":
+                    pass
         else:
             self.send("Unknown request")
 
@@ -95,23 +103,29 @@ class Server:
                                 self.send("Enter password: ")
                                 password = self.receive()
                                 if self.user.login(user_name, password):
-                                    pass
-
-                            # ask for credentials (self.send)
-                            # check credentials
-                            # log in
-                            # show screen
-
+                                    self.send({self.user.login: "Logged in successfully",
+                                              "Actions": ", ".join([f"\n{key}: {value}" for key, value in
+                                                                    self.general_commands.items()])})
                             case "sign out":
                                 self.user.log_out()
-                                self.send("You have successfully logged out!")
+                                self.send("You have been logged out!")
                             # show intro screen or close connection to server
 
                             case "register":
+                                self.send("Enter username: ")
+                                user_name = self.receive()
+                                self.send("Enter password: ")
+                                password = self.receive()
+                                if self.user.add(user_name, password):
+                                    self.send("Sign up successful!")
+
+                            case "inbox":
                                 pass
+
                             # show sign up screen - take input
                             # validate data
                             # when signed up go to user screen
+                            # ask to reenter password
                     else:
                         self.send("Unknown request")
 
