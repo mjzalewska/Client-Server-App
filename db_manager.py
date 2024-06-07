@@ -4,30 +4,47 @@ import json
 class DbManager:
 
     @classmethod
-    def add(cls, record):
-        with open("db_file.txt", "a+") as db:
-            json.dump(record + "\n", db)
+    def add(cls, data):
+        with open("users.txt", "a+", encoding="utf-8") as db:
+            record = json.dumps(data)
+            db.write(record)
+            db.write(",\n")
             print("New record added")
 
     @classmethod
+    def update(cls, user_name, new_data):
+        pass
+
+    @classmethod
     def remove(cls, username):
-        new_db_file = {}
-        with open("db_file.txt", "r+") as db:
-            db_file = json.load(db)
-            for key in db_file.keys():
-                if key != username:
-                    new_db_file[key] = db_file[key]
+        new_db_file = []
+        with open("users.txt", "r+") as db:
+            for line in db.readlines():
+                record = json.loads(line.replace(",\n", ""))
+                if record["username"] != username:
+                    new_db_file.append(record)
                 else:
-                    print(f"Removed user: {username}")
-        with open("db_file.txt", "w+") as db:
-            json.dump(new_db_file, db)
+                    pass
+
+        with open("users.txt", "w+") as db:
+            for item in new_db_file:
+                record = json.dumps(item)
+                db.write(record)
+                db.write(",\n")
+            print(f"Removed user: {username}")
 
     @classmethod
     def fetch(cls, username):
-        with open("db_file.txt", "r+") as db:
-            db_file = json.load(db)
-            for key in db_file.keys():
-                if key == username:
-                    return db_file[key]
+        with open("users.txt", "r+") as db:
+            for line in db.readlines():
+                record = json.loads(line.replace(",\n", ""))
+                if record["username"] == username:
+                    return line
                 else:
                     return None
+
+
+# DbManager.add({"username": "johnny_boy", "password": "strongpass123", "inbox": {}})
+# DbManager.add({"username": "johnny_gal", "password": "strongpass456", "inbox": {}})
+# DbManager.add({"username": "vito_bambino", "password": "strongpass456", "inbox": {}})
+# DbManager.remove("johnny_boy")
