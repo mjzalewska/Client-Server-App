@@ -12,7 +12,7 @@ class DbManager:
     @classmethod
     def update(cls, db_name, user_name, key, new_key_val):
         with open(db_name, "r+", encoding="utf-8") as db:
-            cache = [eval(line) for line in db.read().splitlines()]
+            cache = [eval(line.rstrip(",")) for line in db.read().splitlines()]
             for record in cache:
                 if record["username"] == user_name:
                     record[key] = new_key_val
@@ -36,19 +36,17 @@ class DbManager:
                 cls.add(db_name, record, "a+")
 
     @classmethod
-    def fetch(cls, username):
-        with open("users.txt", "r+") as db:
-            for line in db.readlines():
-                record = json.loads(line.replace(",\n", ""))
-                if record["username"] == username:
-                    return line
-                else:
-                    return None
+    def fetch(cls, db_name, user_name):
+        with open(db_name, "r+") as db:
+            cache = [eval(line.rstrip(",")) for line in db.read().splitlines()]
+            return [record for record in cache if record["username"] == user_name]
+
 
 
 # DbManager.add("users.json", {"username": "johnny_boy", "password": "strongpass123", "inbox": []}, "a+")
 # DbManager.add("users.json", {"username": "johnny_gal", "password": "strongpass456", "inbox": []}, "a+")
 # DbManager.add("users.json", {"username": "vito_bambino", "password": "strongpass456", "inbox": []}, "a+")
-DbManager.remove("users.json", "johnny_boy")
+# DbManager.remove("users.json", "bunny_man")
 # DbManager.create_db()
 # DbManager.update("users.json", "johnny_gal", "username", "bunny_man")
+# print(DbManager.fetch("users.json", "johnny_gal"))
