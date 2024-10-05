@@ -21,33 +21,36 @@ class Client:
 
     def receive(self):
         msg_parts = []
-        bytes_rec = 0
-        try:
-            header = self.client_sock.recv(4)
-            if not header:
-                raise ValueError
-            else:
+        bytes_recv = 0
+        header = self.client_sock.recv(4)
+        if not header:
+            raise ValueError
+        while True:
+            try:
                 msg_len = int.from_bytes(header[0:4], byteorder="big")
-                while bytes_rec < msg_len:
-                    msg_part = self.client_sock.recv(min(msg_len - bytes_rec, self.buffer))
+                while bytes_recv < msg_len:
+                    msg_part = self.client_sock.recv(min(msg_len - bytes_recv, self.buffer))
                     if not msg_part:
-                        raise RuntimeError
+                        break
                     msg_parts.append(msg_part)
-                    bytes_rec += len(msg_part)
-                data = b"".join(msg_parts)
-                message = data.decode("utf-8").strip()
-                return message
-
-        except ValueError:
-            print("Invalid message format: missing header!")
-        except RuntimeError:
-            print("Invalid message format: missing data!")
+                    bytes_recv += len(msg_part)
+            except ValueError:
+                print("Invalid message format: missing header!")
+            data = b"".join(msg_parts)
+            message = json.loads(data.decode("utf-8").strip())
+            return message
 
     @staticmethod
     def print_to_terminal(received_msg):
-        for key, value in received_msg.items():
-            print(f"{key}: {value}")
-            print()
+        print(received_msg)
+        for item in received_msg:
+            for key, value in item.items():
+                if isinstance(value, dict):
+                    for subkey, subvalue in value.items():
+                        print(f"{subkey}: {subvalue}")
+                else:
+                    print(value)
+                print()
 
     @staticmethod
     def clr_screen():
@@ -59,10 +62,10 @@ class Client:
     def run(self):
         self.connect()
         while True:
+
             try:
-                server_response = self.receive()  # +57
-                print(server_response)
-                # self.print_to_terminal(server_response)
+                server_response = self.receive()
+                self.print_to_terminal(server_response)
                 request = input(">>: ")
                 self.send(request)
                 self.clr_screen()
