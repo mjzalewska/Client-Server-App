@@ -16,8 +16,16 @@ class Client:
     def connect(self):
         self.client_sock.connect((self.host, self.port))
 
+    # def send(self, msg):
+    #     self.client_sock.send(bytes(json.dumps(msg), "utf-8"))
     def send(self, msg):
-        self.client_sock.send(bytes(json.dumps(msg), "utf-8"))
+        try:
+            message = json.dumps(msg).encode("utf-8")
+            message_len = len(message).to_bytes(4, byteorder="big")
+            self.client_sock.sendall(message_len + message)
+        except json.decoder.JSONDecodeError:
+            print("Invalid message format")
+            exit()
 
     def receive(self):
         msg_parts = []
@@ -42,7 +50,6 @@ class Client:
 
     @staticmethod
     def print_to_terminal(received_msg):
-        print(received_msg)
         for item in received_msg:
             for key, value in item.items():
                 if isinstance(value, dict):
@@ -62,13 +69,12 @@ class Client:
     def run(self):
         self.connect()
         while True:
-
             try:
                 server_response = self.receive()
                 self.print_to_terminal(server_response)
                 request = input(">>: ")
-                self.send(request)
-                self.clr_screen()
+                self.send({"message": request})
+                # self.clr_screen() # turn on in final
                 if request == "close":
                     self.client_sock.close()
                     break
