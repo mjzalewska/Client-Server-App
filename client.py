@@ -16,8 +16,6 @@ class Client:
     def connect(self):
         self.client_sock.connect((self.host, self.port))
 
-    # def send(self, msg):
-    #     self.client_sock.send(bytes(json.dumps(msg), "utf-8"))
     def send(self, msg):
         try:
             message = json.dumps(msg).encode("utf-8")

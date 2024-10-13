@@ -9,6 +9,7 @@ class Server:
     def __init__(self, port, server_sock=None):
         self.host = "127.0.0.1"
         self.port = port
+        self.buffer = 1024
         if server_sock is None:
             self.server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         else:
@@ -16,23 +17,26 @@ class Server:
         self.version = "1.1.0"
         self.build_date = "2023-05-13"
         self.start_time = datetime.now()
-        self.user = None
-        self.admin_commands = {
-            "info": "display server version and build date",
-            "help": "display available admin_commands",
-            "close": "stop server and client",
-            "uptime": "display server uptime",
-            "users": "see registered users"
-        }
-        if not self.user.logged_in:
-            self.general_commands = {
-                "sign in": "log in",
-                "register": "add a new account"
-            }
-        else:
-            self.general_commands = {
-                "sign out": "log out",
-                "inbox": "go to inbox"
+        self.user = User()
+        self.commands = \
+            {
+                "all_users": {"logged_out": {
+                    "sign in": "log in",
+                    "register": "add a new account",
+                },
+                    "logged_in": {
+                        "sign out": "log out",
+                        "end": "disconnect",
+                        "inbox": "display inbox",
+                        "help": "display available commands"
+                    }
+                },
+                "admin_only": {"logged_in": {
+                    "info": "display server version and build date",
+                    "close": "stop server and client",
+                    "uptime": "display server uptime",
+                    "users": "see registered users"}
+                }
             }
         self.connection = None
         self.address = None
@@ -44,23 +48,38 @@ class Server:
             print(f"Listening on {self.host}:{self.port}")
             self.connection, self.address = s.accept()
             print(f"Accepted connection from {self.address[0]}:{self.address[1]}")
-            self.send({f"Successfully connected to": {self.host},
-                       "Actions": ", ".join([f"\n{key}: {value}" for key, value in self.general_commands.items()])})
+            self.send([{"message1": f"Successfully connected to: {self.host}"},
+                       {"message2": self.commands["all_users"]["logged_out"]}])
 
     def send(self, msg):
         try:
-            self.connection.send(bytes(json.dumps(msg), "utf-8"))
+            message = json.dumps(msg).encode("utf-8")
+            message_len = len(message).to_bytes(4, byteorder="big")
+            self.connection.sendall(message_len + message)
         except json.decoder.JSONDecodeError:
             print("Invalid message format")
             exit()
 
     def receive(self):
-        try:
-            message = json.loads(self.connection.recv(1024).decode("utf-8"))
+        msg_parts = []
+        bytes_recv = 0
+        header = self.connection.recv(4)
+        if not header:
+            raise ValueError
+        while True:
+            try:
+                msg_len = int.from_bytes(header[0:4], byteorder="big")
+                while bytes_recv < msg_len:
+                    msg_part = self.connection.recv(min(msg_len - bytes_recv, self.buffer))
+                    if not msg_part:
+                        break
+                    msg_parts.append(msg_part)
+                    bytes_recv += len(msg_part)
+            except ValueError:
+                print("Invalid message format: missing header!")
+            data = b"".join(msg_parts)
+            message = json.loads(data.decode("utf-8").strip())
             return message
-        except json.decoder.JSONDecodeError:
-            print("Invalid message format")
-            exit()
 
     def calculate_uptime(self):
         request_time = datetime.now()
@@ -69,7 +88,7 @@ class Server:
         return uptime_val
 
     def run_admin_commands(self, command):
-        if command.casefold() in self.admin_commands.keys():
+        if command.casefold() in self.commands["admin_only"].keys():
             match command:
                 case "info":
                     self.send({"version": self.version, "build": self.build_date})
@@ -77,47 +96,54 @@ class Server:
                     uptime = self.calculate_uptime()
                     self.send({"server uptime (hh:mm:ss)": uptime})
                 case "help":
-                    self.send(self.admin_commands)
+                    self.send(self.commands["admin_only"])
                 case "close":
                     print("Shutting down...")
                     sleep(2)
                     self.connection.close()
                     exit()
                 case "users":
+                    # display all users, selected user
+                    # remove selected user
+                    # add user
                     pass
         else:
             self.send("Unknown request")
 
     def run(self):
         self.start_server()
-        self.user = User()
         while True:
             while True:
                 try:
-                    client_msg = self.receive()
-                    if client_msg.casefold() in self.general_commands.keys():
+                    client_msg = self.receive()["message"]
+                    print(client_msg)
+                    # differentiate available commands when logged in and logged out
+                    if client_msg.casefold() in self.commands["all_users"]["logged_out"].keys():
                         match client_msg:
                             case "sign in":
-                                self.send("Enter username: ")
+                                self.send({"message": "Enter username: "})
                                 user_name = self.receive()
-                                self.send("Enter password: ")
+                                self.send({"message": "Enter password: "})
                                 password = self.receive()
                                 if self.user.login(user_name, password):
-                                    self.send({self.user.login: "Logged in successfully",
-                                              "Actions": ", ".join([f"\n{key}: {value}" for key, value in
-                                                                    self.general_commands.items()])})
+                                    self.send([{"message1": "Logged in successfully"},
+                                               {"message2": self.commands["logged_in"]}])
+                                else:
+                                    self.send({"message": "Incorrect user name or password!"})
                             case "sign out":
                                 self.user.log_out()
-                                self.send("You have been logged out!")
-                            # show intro screen or close connection to server
+                                self.send({"message": "You have been logged out!"})
+                            # clr screen and show intro screen or close connection to server
 
                             case "register":
-                                self.send("Enter username: ")
+                                self.send({"message": "Enter username: "})
                                 user_name = self.receive()
-                                self.send("Enter password: ")
+                                self.send({"message": "Enter password: "})
                                 password = self.receive()
                                 if self.user.add(user_name, password):
-                                    self.send("Sign up successful!")
+                                    self.send({"message": "Sign up successful!"})
+                                else:
+                                    self.send({"message": "Username already in use!"})
 
                             case "inbox":
                                 pass
