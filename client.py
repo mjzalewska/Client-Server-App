@@ -54,8 +54,7 @@ class Client:
                     for subkey, subvalue in value.items():
                         print(f"{subkey}: {subvalue}")
                 else:
-                    print(value)
-                print()
+                    print(f"{value}")
 
     @staticmethod
     def clr_screen():
