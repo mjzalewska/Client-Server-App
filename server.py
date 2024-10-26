@@ -136,14 +136,18 @@ class Server:
                             # clr screen and show intro screen or close connection to server
 
                             case "register":
-                                self.send([{"message": "Enter username: "}])
-                                user_name = self.receive()["message"]
-                                self.send([{"message": "Enter password: "}])
-                                password = self.receive()["message"]
-                                if self.user.add(self.db, user_name, password):
-                                    self.send([{"message": "Sign up successful!"}])
-                                else:
-                                    self.send([{"message": "Username already in use!"}])
+                                while True:
+                                    self.send([{"message": "Enter username: "}])
+                                    user_name = self.receive()["message"]
+                                    self.send([{"message": "Enter password: "}])
+                                    password = self.receive()["message"]
+                                    print()
+                                    if self.user.add(self.db, user_name, password):
+                                        self.send([{"message1": "Sign up successful!"},
+                                                   {"message2": self.commands["all_users"]["logged_out"]}])
+                                        break
+                                    else:
+                                        self.send([{"message": "Username already in use!"}])
 
                             case "inbox":
                                 print("This is your inbox!")
