@@ -10,15 +10,15 @@ class User:
         self.inbox = {}
 
     @staticmethod
-    def does_user_exist(user_name):
-        if DbManager.fetch(user_name):
+    def does_user_exist(db, user_name):
+        if DbManager.fetch(db, user_name):
             return True
         else:
             return False
 
-    def log_in(self, user_name, password):
-        if self.does_user_exist(user_name):
-            if DbManager.fetch(user_name)["password"] == password:
+    def log_in(self, db, user_name, password):
+        if self.does_user_exist(db, user_name):
+            if DbManager.fetch(db, user_name)["password"] == password:
                 self.logged_in = True
                 return True
         else:
@@ -28,17 +28,17 @@ class User:
         self.logged_in = False
 
     @staticmethod
-    def add(user_name, password):
-        if DbManager.fetch(user_name) is None:
-            DbManager.add({user_name: {"password": password, "role": "user", "inbox": {}}})
+    def add(db, user_name, password):
+        if DbManager.fetch(db, user_name) is None:
+            DbManager.add(db, {user_name: {"password": password, "role": "user", "inbox": {}}})
             return True
         else:
             return False
 
     @staticmethod
-    def remove(user_name):
-        if DbManager.fetch(user_name):
-            DbManager.remove(user_name)
+    def remove(db, user_name):
+        if DbManager.fetch(db, user_name):
+            DbManager.remove(db, user_name)
             return True
         else:
             return False

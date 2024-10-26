@@ -40,6 +40,7 @@ class Server:
             }
         self.connection = None
         self.address = None
+        self.db = "users.json"
 
     def start_server(self):
         with self.server_sock as s:
@@ -116,37 +117,36 @@ class Server:
             while True:
                 try:
                     client_msg = self.receive()["message"]
-                    print(client_msg)
                     # differentiate available commands when logged in and logged out
                     if client_msg.casefold() in self.commands["all_users"]["logged_out"].keys():
                         match client_msg:
                             case "sign in":
-                                self.send({"message": "Enter username: "})
+                                self.send([{"message": "Enter username: "}])
                                 user_name = self.receive()
-                                self.send({"message": "Enter password: "})
+                                self.send([{"message": "Enter password: "}])
                                 password = self.receive()
-                                if self.user.login(user_name, password):
+                                if self.user.login(self.db, user_name, password):
                                     self.send([{"message1": "Logged in successfully"},
                                                {"message2": self.commands["logged_in"]}])
                                 else:
-                                    self.send({"message": "Incorrect user name or password!"})
+                                    self.send([{"message": "Incorrect user name or password!"}])
                             case "sign out":
                                 self.user.log_out()
-                                self.send({"message": "You have been logged out!"})
+                                self.send([{"message": "You have been logged out!"}])
                             # clr screen and show intro screen or close connection to server
 
                             case "register":
-                                self.send({"message": "Enter username: "})
-                                user_name = self.receive()
-                                self.send({"message": "Enter password: "})
-                                password = self.receive()
-                                if self.user.add(user_name, password):
-                                    self.send({"message": "Sign up successful!"})
+                                self.send([{"message": "Enter username: "}])
+                                user_name = self.receive()["message"]
+                                self.send([{"message": "Enter password: "}])
+                                password = self.receive()["message"]
+                                if self.user.add(self.db, user_name, password):
+                                    self.send([{"message": "Sign up successful!"}])
                                 else:
-                                    self.send({"message": "Username already in use!"})
+                                    self.send([{"message": "Username already in use!"}])
 
                             case "inbox":
-                                pass
+                                print("This is your inbox!")
 
                             # show sign up screen - take input
                             # validate data
