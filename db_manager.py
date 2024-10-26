@@ -86,6 +86,8 @@ class DbManager:
                         return [record for record in existing_data if record["username"] == user_name]
                     except json.JSONDecodeError:
                         return []
+                    except KeyError:
+                        return []
             else:
                 raise FileNotFoundError
         except FileNotFoundError:

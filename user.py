@@ -29,7 +29,7 @@ class User:
 
     @staticmethod
     def add(db, user_name, password):
-        if DbManager.fetch(db, user_name) is None:
+        if not DbManager.fetch(db, user_name):
             DbManager.add(db, {user_name: {"password": password, "role": "user", "inbox": {}}})
             return True
         else:
@@ -42,6 +42,5 @@ class User:
             return True
         else:
             return False
-
 # user = User()
 # user.add("johnny_boy", "strongpass")
