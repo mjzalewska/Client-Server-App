@@ -83,7 +83,7 @@ class DbManager:
                 with open(db_name, "r", encoding="utf-8") as old_db_file:
                     try:
                         existing_data = json.load(old_db_file)
-                        return [record for record in existing_data if record["username"] == user_name]
+                        return [record for record in existing_data if record.get("username") == user_name]
                     except json.JSONDecodeError:
                         return []
                     except KeyError:
@@ -91,9 +91,9 @@ class DbManager:
             else:
                 raise FileNotFoundError
         except FileNotFoundError:
-            return {"message": "database not found"}
+            return [{"message": "database not found"}]
         except Exception as e:
-            return {"message": e}
+            return [{"message": e}]
 
 
 
