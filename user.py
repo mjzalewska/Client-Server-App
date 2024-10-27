@@ -18,7 +18,7 @@ class User:
 
     def log_in(self, db, user_name, password):
         if self.does_user_exist(db, user_name):
-            if DbManager.fetch(db, user_name)["password"] == password:
+            if DbManager.fetch(db, user_name)[0]["password"] == password:
                 self.logged_in = True
                 return True
         else:
@@ -30,7 +30,7 @@ class User:
     @staticmethod
     def add(db, user_name, password):
         if not DbManager.fetch(db, user_name):
-            DbManager.add(db, {user_name: {"password": password, "role": "user", "inbox": {}}})
+            DbManager.add(db, {"username": user_name, "password": password, "role": "user", "inbox": {}})
             return True
         else:
             return False
