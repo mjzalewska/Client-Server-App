@@ -117,19 +117,23 @@ class Server:
             while True:
                 try:
                     client_msg = self.receive()["message"]
-                    # differentiate available commands when logged in and logged out
                     if client_msg.casefold() in self.commands["all_users"]["logged_out"].keys():
                         match client_msg:
                             case "sign in":
-                                self.send([{"message": "Enter username: "}])
-                                user_name = self.receive()
-                                self.send([{"message": "Enter password: "}])
-                                password = self.receive()
-                                if self.user.login(self.db, user_name, password):
-                                    self.send([{"message1": "Logged in successfully"},
-                                               {"message2": self.commands["logged_in"]}])
-                                else:
-                                    self.send([{"message": "Incorrect user name or password!"}])
+                                while True:
+                                    self.send([{"message": "Enter username: "}])
+                                    user_name = self.receive()["message"]
+                                    self.send([{"message": "Enter password: "}])
+                                    password = self.receive()["message"]
+                                    print("\n")
+                                    if self.user.log_in(self.db, user_name, password):
+                                        self.send([{"message1": "Logged in successfully!"},
+                                                   {"message2": self.commands["all_users"]["logged_in"]}])
+                                        break
+                                    else:
+                                        self.send([{"message": "Incorrect username or password!"}])
+                                        print("\n")
+                                        continue
                             case "sign out":
                                 self.user.log_out()
                                 self.send([{"message": "You have been logged out!"}])
@@ -148,7 +152,8 @@ class Server:
                                         break
                                     else:
                                         self.send([{"message": "Username already in use!"}])
-
+                                        print("\n")
+                                        continue
                             case "inbox":
                                 print("This is your inbox!")
 
