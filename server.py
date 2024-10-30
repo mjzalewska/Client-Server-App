@@ -88,16 +88,22 @@ class Server:
         uptime_val = str(timedelta(seconds=time_diff))
         return uptime_val
 
+    def display_users(self):
+        pass
+
+    def run_general_commands(self):
+        pass
+
     def run_admin_commands(self, command):
         if command.casefold() in self.commands["admin_only"]["logged_in"].keys():
             match command:
                 case "info":
-                    self.send({"version": self.version, "build": self.build_date})
+                    self.send([{"message": f"version: {self.version}, build: {self.build_date}"}])
                 case "uptime":
                     uptime = self.calculate_uptime()
-                    self.send({"server uptime (hh:mm:ss)": uptime})
+                    self.send([{"message": f"server uptime (hh:mm:ss): {uptime}"}])
                 case "help":
-                    self.send(self.commands["admin_only"])
+                    self.send([{"message": self.commands["admin_only"]["logged_in"]}]) # add general user commands
                 case "close":
                     print("Shutting down...")
                     sleep(2)
@@ -109,7 +115,7 @@ class Server:
                     # add user
                     pass
         else:
-            self.send("Unknown request")
+            self.send([{"message":"Unknown request"}])
 
     def run(self):
         self.start_server()
