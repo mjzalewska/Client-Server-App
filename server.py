@@ -89,7 +89,7 @@ class Server:
         return uptime_val
 
     def run_admin_commands(self, command):
-        if command.casefold() in self.commands["admin_only"].keys():
+        if command.casefold() in self.commands["admin_only"]["logged_in"].keys():
             match command:
                 case "info":
                     self.send({"version": self.version, "build": self.build_date})
@@ -117,53 +117,58 @@ class Server:
             while True:
                 try:
                     client_msg = self.receive()["message"]
-                    if client_msg.casefold() in self.commands["all_users"]["logged_out"].keys():
-                        match client_msg:
-                            case "sign in":
-                                while True:
-                                    self.send([{"message": "Enter username: "}])
-                                    user_name = self.receive()["message"]
-                                    self.send([{"message": "Enter password: "}])
-                                    password = self.receive()["message"]
-                                    print("\n")
-                                    if self.user.log_in(self.db, user_name, password):
-                                        self.send([{"message1": "Logged in successfully!"},
-                                                   {"message2": self.commands["all_users"]["logged_in"]}])
-                                        break
-                                    else:
-                                        self.send([{"message": "Incorrect username or password!"}])
+                    if not self.user.logged_in:
+                        if client_msg.casefold() in self.commands["all_users"]["logged_out"].keys():
+                            match client_msg:
+                                case "sign in":
+                                    while True:
+                                        self.send([{"message": "Enter username: "}])
+                                        user_name = self.receive()["message"]
+                                        self.send([{"message": "Enter password: "}])
+                                        password = self.receive()["message"]
                                         print("\n")
-                                        continue
-                            case "sign out":
-                                self.user.log_out()
-                                self.send([{"message": "You have been logged out!"}])
-                            # clr screen and show intro screen or close connection to server
-
-                            case "register":
-                                while True:
-                                    self.send([{"message": "Enter username: "}])
-                                    user_name = self.receive()["message"]
-                                    self.send([{"message": "Enter password: "}])
-                                    password = self.receive()["message"]
-                                    print()
-                                    if self.user.add(self.db, user_name, password):
-                                        self.send([{"message1": "Sign up successful!"},
-                                                   {"message2": self.commands["all_users"]["logged_out"]}])
-                                        break
-                                    else:
-                                        self.send([{"message": "Username already in use!"}])
-                                        print("\n")
-                                        continue
-                            case "inbox":
-                                print("This is your inbox!")
-
-                            # show sign up screen - take input
-                            # validate data
-                            # when signed up go to user screen
-                            # ask to reenter password
+                                        if self.user.log_in(self.db, user_name, password):
+                                            self.send([{"message1": "Logged in successfully!"},
+                                                       {"message2": self.commands["all_users"]["logged_in"]}])
+                                            break
+                                        else:
+                                            self.send([{"message": "Incorrect username or password!"}])
+                                            print("\n")
+                                            continue
+                                case "register":
+                                    while True:
+                                        self.send([{"message": "Enter username: "}])
+                                        user_name = self.receive()["message"]
+                                        self.send([{"message": "Enter password: "}])
+                                        password = self.receive()["message"]
+                                        print()
+                                        if self.user.add(self.db, user_name, password):
+                                            self.send([{"message1": "Sign up successful!"},
+                                                       {"message2": self.commands["all_users"]["logged_out"]}])
+                                            break
+                                        else:
+                                            self.send([{"message": "Username already in use!"}])
+                                            print("\n")
+                                            continue
+                        else:
+                            self.send([{"message": "Unknown request"}])
                     else:
-                        self.send("Unknown request")
-
+                        if self.user.role == "user":
+                            if client_msg.casefold() in self.commands["all_users"]["logged_in"].keys():
+                                match client_msg:
+                                    case "inbox":
+                                        pass
+                                    case "help":
+                                        pass
+                                    case "sign out":
+                                        pass
+                                    case "end":
+                                        pass
+                        elif self.user.role == "admin":
+                            if client_msg.casefold() in self.commands["all_users"]["logged_in"].keys():
+                                pass
+                            elif client_msg.casefold() in self.commands["admin_only"]["logged_in"].keys():
+                                self.run_admin_commands(client_msg.casefold())
                 except ConnectionError:
                     print("Connection has been lost!")
                     exit()
