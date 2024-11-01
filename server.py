@@ -1,6 +1,7 @@
 import json
 import socket
 from datetime import datetime, timedelta
+from prettytable import PrettyTable
 from time import sleep
 from user import User
 
@@ -89,7 +90,15 @@ class Server:
         return uptime_val
 
     def display_users(self):
-        pass
+        all_users = self.user.get_all("users.json")
+        users_table = PrettyTable()
+        users_table.field_names = ["Username", "Password", "Role"]
+        users_table.align["Username"] = "l"
+        users_table.align["Password"] = "c"
+        users_table.align["Role"] = "r"
+        for user in all_users:
+            users_table.add_row(list(user.values())[:3])
+        print(users_table)
 
     def run_general_commands(self):
         pass
@@ -103,19 +112,20 @@ class Server:
                     uptime = self.calculate_uptime()
                     self.send([{"message": f"server uptime (hh:mm:ss): {uptime}"}])
                 case "help":
-                    self.send([{"message": self.commands["admin_only"]["logged_in"]}]) # add general user commands
+                    self.send([{"message": self.commands["admin_only"]["logged_in"]}])  # add general user commands
                 case "close":
                     print("Shutting down...")
                     sleep(2)
                     self.connection.close()
                     exit()
                 case "users":
-                    # display all users, selected user
+                    self.display_users()
+                    # display selected user only
                     # remove selected user
                     # add user
                     pass
         else:
-            self.send([{"message":"Unknown request"}])
+            self.send([{"message": "Unknown request"}])
 
     def run(self):
         self.start_server()
