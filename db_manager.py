@@ -77,12 +77,14 @@ class DbManager:
             return {"message": f"updated {removed_recs} record(s)"}
 
     @classmethod
-    def fetch(cls, db_name, user_name):
+    def fetch(cls, db_name, user_name=None):
         try:
             if os.path.exists(db_name):
                 with open(db_name, "r", encoding="utf-8") as old_db_file:
                     try:
                         existing_data = json.load(old_db_file)
+                        if user_name is None:
+                            return [record for record in existing_data]
                         return [record for record in existing_data if record.get("username") == user_name]
                     except json.JSONDecodeError:
                         return []
