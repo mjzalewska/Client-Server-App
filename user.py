@@ -42,5 +42,28 @@ class User:
             return True
         else:
             return False
-# user = User()
-# user.add("johnny_boy", "strongpass")
+
+    @staticmethod
+    def get_all(db):
+        all_users = DbManager.fetch(db)
+        return all_users
+
+
+from prettytable import PrettyTable
+
+test_user = User()
+
+
+def display_users():
+    all_users = test_user.get_all("users.json")
+    users_table = PrettyTable()
+    users_table.field_names = ["Username", "Password", "Role"]
+    users_table.align["Username"] = "l"
+    users_table.align["Password"] = "c"
+    users_table.align["Role"] = "r"
+    for user in all_users:
+        users_table.add_row(list(user.values())[:3])
+    print(users_table)
+
+
+display_users()
