@@ -19,24 +19,28 @@ class Server:
         self.build_date = "2023-05-13"
         self.start_time = datetime.now()
         self.user = User()
-        self.commands = \
+        self.user_commands = \
             {
-                "all_users": {"logged_out": {
+                "logged_out": {
                     "sign in": "log in",
                     "register": "add a new account",
                 },
-                    "logged_in": {
-                        "sign out": "log out",
-                        "end": "disconnect",
-                        "inbox": "display inbox",
-                        "help": "display available commands"
-                    }
-                },
-                "admin_only": {"logged_in": {
-                    "info": "display server version and build date",
+                "logged_in": {
+                    "sign out": "log out",
+                    "inbox": "go to inbox",
+                    "help": "display available commands"
+                }
+            }
+        self.admin_commands = \
+            {
+                "logged_in": {
                     "close": "stop server and client",
+                    "help": "display available commands",
+                    "inbox": "go to inbox",
+                    "info": "display server version and build date",
+                    "sign out": "log out",
                     "uptime": "display server uptime",
-                    "users": "see registered users"}
+                    "users": "see registered users",
                 }
             }
         self.connection = None
@@ -51,7 +55,7 @@ class Server:
             self.connection, self.address = s.accept()
             print(f"Accepted connection from {self.address[0]}:{self.address[1]}")
             self.send([{"message1": f"Successfully connected to: {self.host}"},
-                       {"message2": self.commands["all_users"]["logged_out"]}])
+                       {"message2": self.user_commands["user_commands"]["logged_out"]}])
 
     def send(self, msg):
         try:
@@ -83,14 +87,49 @@ class Server:
             message = json.loads(data.decode("utf-8").strip())
             return message
 
+    def sign_up(self):
+        while True:
+            self.send([{"message": "Enter username: "}])
+            user_name = self.receive()["message"]
+            self.send([{"message": "Enter password: "}])
+            password = self.receive()["message"]
+            print()
+            if self.user.add(self.db, user_name, password):
+                self.send([{"message1": "Sign up successful!"},
+                           {"message2": self.user_commands["logged_out"]}])
+                break
+            else:
+                self.send([{"message": "Username already in use!"}])
+                print("\n")
+                continue
+
+    def sign_in(self, user_role="user"):
+        while True:
+            self.send([{"message": "Enter username: "}])
+            user_name = self.receive()["message"]
+            self.send([{"message": "Enter password: "}])
+            password = self.receive()["message"]
+            print("\n")
+            if self.user.log_in(self.db, user_name, password):
+                if self.user.role == "user":
+                    self.send([{"message1": "Logged in successfully!"},
+                               {"message2": self.user_commands["logged_in"]}])
+                self.send([{"message1": "Logged in successfully!"},
+                           {"message2": self.admin_commands["logged_in"]}])
+                break
+            else:
+                self.send([{"message": "Incorrect username or password!"}])
+                print("\n")
+                continue
+
     def calculate_uptime(self):
         request_time = datetime.now()
         time_diff = (request_time - self.start_time).seconds
         uptime_val = str(timedelta(seconds=time_diff))
         return uptime_val
 
-    def display_users(self):
-        all_users = self.user.get_all("users.json")
+    def display_users(self, username=None):
+        all_users = self.user.get("users.json", username)
         users_table = PrettyTable()
         users_table.field_names = [key.capiltaized() for user in all_users for key in user.keys()]
         users_table.align[users_table.field_names[0]] = "l"
@@ -100,11 +139,30 @@ class Server:
             users_table.add_row(list(user.values())[:3])
         print(users_table)
 
-    def run_general_commands(self):
+    def display_main_menu(self):
         pass
 
+    def display_users_menu(self):
+        pass
+
+    def display_inbox_menu(self):
+        pass
+
+    def run_user_commands(self, command):
+        if command.casefold() in self.user_commands["logged_in"].keys():
+            match command:
+                case "inbox":
+                    # opens a separate submenu
+                    pass
+                case "help":
+                    self.send([{"message": self.user_commands["logged_in"]}])
+                case "sign out":
+                    self.user.logged_in = False
+                    self.send([{"message": "You have been successfully signed out!"}])
+                    # return to the home screen
+
     def run_admin_commands(self, command):
-        if command.casefold() in self.commands["admin_only"]["logged_in"].keys():
+        if command.casefold() in self.admin_commands["logged_in"].keys():
             match command:
                 case "info":
                     self.send([{"message": f"version: {self.version}, build: {self.build_date}"}])
@@ -112,17 +170,21 @@ class Server:
                     uptime = self.calculate_uptime()
                     self.send([{"message": f"server uptime (hh:mm:ss): {uptime}"}])
                 case "help":
-                    self.send([{"message": self.commands["admin_only"]["logged_in"]}])  # add general user commands
+                    self.send([{"message": self.admin_commands["logged_in"]}])
                 case "close":
                     print("Shutting down...")
                     sleep(2)
                     self.connection.close()
                     exit()
                 case "users":
+                    # ask if all or one or separate submenu?
                     self.display_users()
-                    # display selected user only (filter)
                     # remove selected user
                     # add user
+                    pass
+                case "inbox":
+                    pass
+                case "sign out":
                     pass
         else:
             self.send([{"message": "Unknown request"}])
@@ -134,57 +196,19 @@ class Server:
                 try:
                     client_msg = self.receive()["message"]
                     if not self.user.logged_in:
-                        if client_msg.casefold() in self.commands["all_users"]["logged_out"].keys():
+                        if client_msg.casefold() in self.user_commands["logged_out"].keys():
                             match client_msg:
                                 case "sign in":
-                                    while True:
-                                        self.send([{"message": "Enter username: "}])
-                                        user_name = self.receive()["message"]
-                                        self.send([{"message": "Enter password: "}])
-                                        password = self.receive()["message"]
-                                        print("\n")
-                                        if self.user.log_in(self.db, user_name, password):
-                                            self.send([{"message1": "Logged in successfully!"},
-                                                       {"message2": self.commands["all_users"]["logged_in"]}])
-                                            break
-                                        else:
-                                            self.send([{"message": "Incorrect username or password!"}])
-                                            print("\n")
-                                            continue
+                                    self.sign_in()
                                 case "register":
-                                    while True:
-                                        self.send([{"message": "Enter username: "}])
-                                        user_name = self.receive()["message"]
-                                        self.send([{"message": "Enter password: "}])
-                                        password = self.receive()["message"]
-                                        print()
-                                        if self.user.add(self.db, user_name, password):
-                                            self.send([{"message1": "Sign up successful!"},
-                                                       {"message2": self.commands["all_users"]["logged_out"]}])
-                                            break
-                                        else:
-                                            self.send([{"message": "Username already in use!"}])
-                                            print("\n")
-                                            continue
+                                    self.sign_up()
                         else:
                             self.send([{"message": "Unknown request"}])
                     else:
                         if self.user.role == "user":
-                            if client_msg.casefold() in self.commands["all_users"]["logged_in"].keys():
-                                match client_msg:
-                                    case "inbox":
-                                        pass
-                                    case "help":
-                                        pass
-                                    case "sign out":
-                                        pass
-                                    case "end":
-                                        pass
+                            self.run_user_commands(client_msg)
                         elif self.user.role == "admin":
-                            if client_msg.casefold() in self.commands["all_users"]["logged_in"].keys():
-                                pass
-                            elif client_msg.casefold() in self.commands["admin_only"]["logged_in"].keys():
-                                self.run_admin_commands(client_msg.casefold())
+                            self.run_admin_commands(client_msg)
                 except ConnectionError:
                     print("Connection has been lost!")
                     exit()
