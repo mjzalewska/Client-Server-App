@@ -92,10 +92,10 @@ class Server:
     def display_users(self):
         all_users = self.user.get_all("users.json")
         users_table = PrettyTable()
-        users_table.field_names = ["Username", "Password", "Role"]
-        users_table.align["Username"] = "l"
-        users_table.align["Password"] = "c"
-        users_table.align["Role"] = "r"
+        users_table.field_names = [key.capiltaized() for user in all_users for key in user.keys()]
+        users_table.align[users_table.field_names[0]] = "l"
+        users_table.align[users_table.field_names[1]] = "c"
+        users_table.align[users_table.field_names[2]] = "r"
         for user in all_users:
             users_table.add_row(list(user.values())[:3])
         print(users_table)
@@ -120,7 +120,7 @@ class Server:
                     exit()
                 case "users":
                     self.display_users()
-                    # display selected user only
+                    # display selected user only (filter)
                     # remove selected user
                     # add user
                     pass
