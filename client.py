@@ -1,6 +1,6 @@
 import json
 import socket
-from os import system, name
+from utilities import clr_screen
 
 
 class Client:
@@ -56,13 +56,6 @@ class Client:
                 else:
                     print(f"{value}")
 
-    @staticmethod
-    def clr_screen():
-        if name == 'nt':
-            _ = system('cls')
-        else:
-            _ = system('clear')
-
     def run(self):
         self.connect()
         while True:
@@ -71,7 +64,7 @@ class Client:
                 self.print_to_terminal(server_response)
                 request = input(">>: ")
                 self.send({"message": request})
-                # self.clr_screen() # turn on in final
+                # clr_screen() # turn on in final
                 if request == "close":
                     self.client_sock.close()
                     break
