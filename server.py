@@ -55,7 +55,7 @@ class Server:
             self.connection, self.address = s.accept()
             print(f"Accepted connection from {self.address[0]}:{self.address[1]}")
             self.send([{"message1": f"Successfully connected to: {self.host}"},
-                       {"message2": self.user_commands["user_commands"]["logged_out"]}])
+                       {"message2": self.user_commands["logged_out"]}])
 
     def send(self, msg):
         try:
@@ -114,8 +114,9 @@ class Server:
                 if self.user.role == "user":
                     self.send([{"message1": "Logged in successfully!"},
                                {"message2": self.user_commands["logged_in"]}])
-                self.send([{"message1": "Logged in successfully!"},
-                           {"message2": self.admin_commands["logged_in"]}])
+                else:
+                    self.send([{"message1": "Logged in successfully!"},
+                               {"message2": self.admin_commands["logged_in"]}])
                 break
             else:
                 self.send([{"message": "Incorrect username or password!"}])
@@ -139,8 +140,17 @@ class Server:
             users_table.add_row(list(user.values())[:3])
         print(users_table)
 
-    def display_main_menu(self):
-        pass
+    def display_main_menu(self, command):
+        while True:
+            if command.casefold() in self.user_commands["logged_out"].keys():
+                match command:
+                    case "sign in":
+                        self.sign_in()
+                    case "register":
+                        self.sign_up()
+            else:
+                self.send([{"message": "Unknown request"}])
+                continue
 
     def display_users_menu(self):
         pass
@@ -191,19 +201,12 @@ class Server:
 
     def run(self):
         self.start_server()
-        while True:
+        while True: # one layer to be removed
             while True:
                 try:
                     client_msg = self.receive()["message"]
                     if not self.user.logged_in:
-                        if client_msg.casefold() in self.user_commands["logged_out"].keys():
-                            match client_msg:
-                                case "sign in":
-                                    self.sign_in()
-                                case "register":
-                                    self.sign_up()
-                        else:
-                            self.send([{"message": "Unknown request"}])
+                        self.display_main_menu(client_msg)
                     else:
                         if self.user.role == "user":
                             self.run_user_commands(client_msg)
