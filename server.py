@@ -103,7 +103,7 @@ class Server:
                 print("\n")
                 continue
 
-    def sign_in(self, user_role="user"):
+    def sign_in(self):
         while True:
             self.send([{"message": "Enter username: "}])
             user_name = self.receive()["message"]
@@ -111,13 +111,19 @@ class Server:
             password = self.receive()["message"]
             print("\n")
             if self.user.log_in(self.db, user_name, password):
-                if self.user.role == "user":
-                    self.send([{"message1": "Logged in successfully!"},
-                               {"message2": self.user_commands["logged_in"]}])
-                else:
-                    self.send([{"message1": "Logged in successfully!"},
-                               {"message2": self.admin_commands["logged_in"]}])
+                self.user.logged_in = True
+                self.send([{"message1": "Logged in successfully!"}])
                 break
+                # menu applicable to a given user role should be displayed after this step
+
+
+                # if self.user.role == "user":
+                #     self.send([{"message1": "Logged in successfully!"},
+                #                {"message2": self.user_commands["logged_in"]}])
+                # else:
+                #     self.send([{"message1": "Logged in successfully!"},
+                #                {"message2": self.admin_commands["logged_in"]}])
+                # break
             else:
                 self.send([{"message": "Incorrect username or password!"}])
                 print("\n")
@@ -141,6 +147,7 @@ class Server:
         print(users_table)
 
     def display_main_menu(self, command):
+        print(command)
         while True:
             if command.casefold() in self.user_commands["logged_out"].keys():
                 match command:
@@ -150,7 +157,7 @@ class Server:
                         self.sign_up()
             else:
                 self.send([{"message": "Unknown request"}])
-                continue
+                break
 
     def display_users_menu(self):
         pass
