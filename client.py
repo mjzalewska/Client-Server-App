@@ -41,7 +41,8 @@ class Client:
                     msg_parts.append(msg_part)
                     bytes_recv += len(msg_part)
             except ValueError:
-                print("Invalid message format: missing header!")
+                self.send([{"error": "Invalid message format: missing header!"}])
+                exit()
             data = b"".join(msg_parts)
             message = json.loads(data.decode("utf-8").strip())
             return message
@@ -62,8 +63,11 @@ class Client:
             try:
                 server_response = self.receive()
                 self.print_to_terminal(server_response)
-                request = input(">>: ")
-                self.send({"message": request})
+                if "error" in server_response[0].keys():
+                    continue
+                else:
+                    request = input(">>: ")
+                    self.send({"message": request})
                 # clr_screen() # turn on in final
                 if request == "close":
                     self.client_sock.close()
