@@ -3,11 +3,12 @@ import os
 
 
 class DbManager:
+    db_file = "users.json"
 
     @classmethod
-    def add(cls, db_name, data):
-        if os.path.exists(db_name):
-            with open(db_name, 'r') as db:
+    def add(cls, data):
+        if os.path.exists(cls.db_file):
+            with open(cls.db_file, 'r') as db:
                 try:
                     existing_data = json.load(db)
                 except json.JSONDecodeError:
@@ -17,22 +18,21 @@ class DbManager:
 
         existing_data.append(data)
 
-        with open(db_name, 'w') as db:
+        with open(cls.db_file, 'w') as db:
             json.dump(existing_data, db, indent=4)
 
-
     @classmethod
-    def update(cls, db_name, user_name, key, new_key_val):
+    def update(cls, user_name, key, new_key_val):
         try:
-            if os.path.exists(db_name):
-                with open(db_name, "r", encoding="utf-8") as old_db_file:
+            if os.path.exists(cls.db_file):
+                with open(cls.db_file, "r", encoding="utf-8") as old_db_file:
                     try:
                         existing_data = json.load(old_db_file)
                         updated_recs = 0
                         for record in existing_data:
                             if record["username"] == user_name:
                                 record[key] = new_key_val
-                                updated_recs +=1
+                                updated_recs += 1
                             else:
                                 pass
                     except json.JSONDecodeError:
@@ -44,17 +44,16 @@ class DbManager:
         except Exception as e:
             return {"message": e}
 
-        with open(db_name, 'w') as new_db_file:
+        with open(cls.db_file, 'w') as new_db_file:
             json.dump(existing_data, new_db_file, indent=4)
             return {"message": f"updated {updated_recs} record(s)"}
 
-
     @classmethod
-    def remove(cls, db_name, user_name):
+    def remove(cls, user_name):
         try:
-            if os.path.exists(db_name):
+            if os.path.exists(cls.db_file):
                 updated_data = []
-                with open(db_name, "r", encoding="utf-8") as old_db_file:
+                with open(cls.db_file, "r", encoding="utf-8") as old_db_file:
                     try:
                         existing_data = json.load(old_db_file)
                         removed_recs = 0
@@ -72,15 +71,15 @@ class DbManager:
         except Exception as e:
             return {"message": e}
 
-        with open(db_name, 'w') as new_db_file:
+        with open(cls.db_file, 'w') as new_db_file:
             json.dump(updated_data, new_db_file, indent=4)
             return {"message": f"updated {removed_recs} record(s)"}
 
     @classmethod
-    def fetch(cls, db_name, username=None):
+    def fetch(cls, username=None):
         try:
-            if os.path.exists(db_name):
-                with open(db_name, "r", encoding="utf-8") as old_db_file:
+            if os.path.exists(cls.db_file):
+                with open(cls.db_file, "r", encoding="utf-8") as old_db_file:
                     try:
                         existing_data = json.load(old_db_file)
                         if username is None:
@@ -96,6 +95,3 @@ class DbManager:
             return [{"message": "database not found"}]
         except Exception as e:
             return [{"message": e}]
-
-
-
