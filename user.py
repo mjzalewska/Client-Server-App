@@ -7,28 +7,28 @@ class User:
     def __init__(self, username, password_hash, email, role="user"):
         self.username = username
         self.password_hash = password_hash
-        self.role = role
         self.email = email
-        self.is_logged_in = False
+        self.role = role
         self.inbox = []
+        self.is_logged_in = False
 
     @classmethod
-    def does_user_exist(cls, user_name):
-        if DbManager.fetch(user_name):
+    def does_user_exist(cls, username):
+        if DbManager.fetch(username):
             return True
         else:
             return False
 
     @classmethod
-    def log_in(cls, user_name, password):
-        if cls.does_user_exist(user_name):
-            user_data = DbManager.fetch(user_name)[0]
-            if user_data["password"] == password:
+    def log_in(cls, username, password):
+        if cls.does_user_exist(username):
+            user_data = DbManager.fetch(username)[0]
+            if user_data["password_hash"] == cls.hash_password(password):
                 user = cls(**user_data)
                 user.is_logged_in = True
-                return True
+                return user
         else:
-            return False
+            return None
 
     @classmethod
     def log_out(cls):
@@ -49,9 +49,9 @@ class User:
             return False
 
     @classmethod
-    def remove(cls, user_name):
-        if DbManager.fetch(user_name):
-            DbManager.remove(user_name)
+    def remove(cls, username):
+        if DbManager.fetch(username):
+            DbManager.remove(username)
             return True
         else:
             return False

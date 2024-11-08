@@ -22,7 +22,7 @@ class DbManager:
             json.dump(existing_data, db, indent=4)
 
     @classmethod
-    def update(cls, user_name, key, new_key_val):
+    def update(cls, username, key, new_key_val):
         try:
             if os.path.exists(cls.db_file):
                 with open(cls.db_file, "r", encoding="utf-8") as old_db_file:
@@ -30,7 +30,7 @@ class DbManager:
                         existing_data = json.load(old_db_file)
                         updated_recs = 0
                         for record in existing_data:
-                            if record["username"] == user_name:
+                            if record["username"] == username:
                                 record[key] = new_key_val
                                 updated_recs += 1
                             else:
@@ -79,12 +79,13 @@ class DbManager:
     def fetch(cls, username=None):
         try:
             if os.path.exists(cls.db_file):
-                with open(cls.db_file, "r", encoding="utf-8") as old_db_file:
+                with open(cls.db_file, "r", encoding="utf-8") as db:
                     try:
-                        existing_data = json.load(old_db_file)
+                        users = json.load(db)
                         if username is None:
-                            return [record for record in existing_data]
-                        return [record for record in existing_data if record.get("username") == username]
+                            return [record for record in users]
+                        else:
+                            return [record for record in users if record.get("username") == username]
                     except json.JSONDecodeError:
                         return []
                     except KeyError:
