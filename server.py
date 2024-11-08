@@ -18,14 +18,14 @@ class Server:
         self.version = "1.1.0"
         self.build_date = "2023-05-13"
         self.start_time = datetime.now()
-        self.user = User()
+        self.user = None
         self.user_commands = \
             {
                 "logged_out": {
-                    "sign in": "log in",
+                    "log in": "log in",
                     "register": "add a new account",
                 },
-                "logged_in": {
+                "is_logged_in": {
                     "sign out": "log out",
                     "inbox": "go to inbox",
                     "help": "display available commands"
@@ -33,7 +33,7 @@ class Server:
             }
         self.admin_commands = \
             {
-                "logged_in": {
+                "is_logged_in": {
                     "close": "stop server and client",
                     "help": "display available commands",
                     "inbox": "go to inbox",
@@ -82,7 +82,8 @@ class Server:
                     msg_parts.append(msg_part)
                     bytes_recv += len(msg_part)
             except ValueError:
-                print("Invalid message format: missing header!")
+                self.send([{"error": "Invalid message format: missing header!"}])
+                exit()
             data = b"".join(msg_parts)
             message = json.loads(data.decode("utf-8").strip())
             return message
@@ -90,42 +91,39 @@ class Server:
     def sign_up(self):
         while True:
             self.send([{"message": "Enter username: "}])
-            user_name = self.receive()["message"]
+            username = self.receive()["message"]
             self.send([{"message": "Enter password: "}])
             password = self.receive()["message"]
+            self.send([{"message": "Enter email: "}])
+            email = self.receive()["message"]
             print()
-            if self.user.add(self.db, user_name, password):
+            if User.add(username, password, email):
                 self.send([{"message1": "Sign up successful!"},
                            {"message2": self.user_commands["logged_out"]}])
                 break
             else:
-                self.send([{"message": "Username already in use!"}])
+                self.send([{"error": "Username already in use!"}])
                 print("\n")
                 continue
 
-    def sign_in(self):
+    def log_in(self):
         while True:
             self.send([{"message": "Enter username: "}])
             user_name = self.receive()["message"]
             self.send([{"message": "Enter password: "}])
             password = self.receive()["message"]
-            print("\n")
-            if self.user.log_in(self.db, user_name, password):
-                self.user.logged_in = True
-                self.send([{"message1": "Logged in successfully!"}])
+            print("\n\n")
+            user = User.log_in(user_name, password)  # User object is not subscriptable
+            if user is not None:
+                if user.role == "user":
+                    self.send(
+                        [{"message1": "Logged in successfully!"}, {"message2": self.user_commands["is_logged_in"]}])
+                elif user.role == "admin":
+                    self.send(
+                        [{"message1": "Logged in successfully!"}, {"message2": self.admin_commands["is_logged_in"]}])
                 break
-                # menu applicable to a given user role should be displayed after this step
-
-
-                # if self.user.role == "user":
-                #     self.send([{"message1": "Logged in successfully!"},
-                #                {"message2": self.user_commands["logged_in"]}])
-                # else:
-                #     self.send([{"message1": "Logged in successfully!"},
-                #                {"message2": self.admin_commands["logged_in"]}])
-                # break
             else:
-                self.send([{"message": "Incorrect username or password!"}])
+                self.send([{"error": "Incorrect username or password!"}])
                 print("\n")
                 continue
 
@@ -135,28 +133,29 @@ class Server:
         uptime_val = str(timedelta(seconds=time_diff))
         return uptime_val
 
-    def display_users(self, username=None):
-        all_users = self.user.get("users.json", username)
+    @staticmethod
+    def display_users(username=None):
+        all_users = User.get(username)
         users_table = PrettyTable()
         users_table.field_names = [key.capiltaized() for user in all_users for key in user.keys()]
         users_table.align[users_table.field_names[0]] = "l"
         users_table.align[users_table.field_names[1]] = "c"
-        users_table.align[users_table.field_names[2]] = "r"
+        users_table.align[users_table.field_names[2]] = "c"
+        users_table.align[users_table.field_names[3]] = "r"
         for user in all_users:
-            users_table.add_row(list(user.values())[:3])
+            users_table.add_row(list(user.values())[:4])
         print(users_table)
 
     def display_main_menu(self, command):
-        print(command)
         while True:
             if command.casefold() in self.user_commands["logged_out"].keys():
                 match command:
                     case "sign in":
-                        self.sign_in()
+                        self.log_in()
                     case "register":
                         self.sign_up()
             else:
-                self.send([{"message": "Unknown request"}])
+                self.send([{"error": "Unknown request"}])  # this causes the app to hang
                 break
 
     def display_users_menu(self):
@@ -166,20 +165,20 @@ class Server:
         pass
 
     def run_user_commands(self, command):
-        if command.casefold() in self.user_commands["logged_in"].keys():
+        if command.casefold() in self.user_commands["is_logged_in"].keys():
             match command:
                 case "inbox":
                     # opens a separate submenu
                     pass
                 case "help":
-                    self.send([{"message": self.user_commands["logged_in"]}])
+                    self.send([{"message": self.user_commands["is_logged_in"]}])
                 case "sign out":
-                    self.user.logged_in = False
-                    self.send([{"message": "You have been successfully signed out!"}])
+                    User.log_out()
+                    self.send([{"message": "You have been successfully logged out!"}])
                     # return to the home screen
 
     def run_admin_commands(self, command):
-        if command.casefold() in self.admin_commands["logged_in"].keys():
+        if command.casefold() in self.admin_commands["is_logged_in"].keys():
             match command:
                 case "info":
                     self.send([{"message": f"version: {self.version}, build: {self.build_date}"}])
@@ -187,7 +186,7 @@ class Server:
                     uptime = self.calculate_uptime()
                     self.send([{"message": f"server uptime (hh:mm:ss): {uptime}"}])
                 case "help":
-                    self.send([{"message": self.admin_commands["logged_in"]}])
+                    self.send([{"message": self.admin_commands["is_logged_in"]}])
                 case "close":
                     print("Shutting down...")
                     sleep(2)
@@ -202,29 +201,39 @@ class Server:
                 case "inbox":
                     pass
                 case "sign out":
-                    pass
+                    User.log_out()
+                    self.send([{"message": "You have been successfully logged out!"}])
         else:
-            self.send([{"message": "Unknown request"}])
+            self.send([{"error": "Unknown request"}])
 
     def run(self):
         self.start_server()
-        while True: # one layer to be removed
-            while True:
-                try:
-                    client_msg = self.receive()["message"]
-                    if not self.user.logged_in:
-                        self.display_main_menu(client_msg)
+        while True:
+            try:
+                client_msg = self.receive()["message"]
+                if not self.user or not self.user.is_logged_in:
+                    if client_msg in self.user_commands["logged_out"]:
+                        match client_msg:
+                            case "log in":
+                                self.log_in()
+                            case "register":
+                                self.sign_up()
                     else:
-                        if self.user.role == "user":
-                            self.run_user_commands(client_msg)
-                        elif self.user.role == "admin":
-                            self.run_admin_commands(client_msg)
-                except ConnectionError:
-                    print("Connection has been lost!")
-                    exit()
-                except Exception as e:
-                    print(e)
-                    exit()
+                        self.send([{"error": 'Unknown request!'}])
+                        continue
+
+
+                else:
+                    if self.user.role == "user":
+                        self.run_user_commands(client_msg)
+                    elif self.user.role == "admin":
+                        self.run_admin_commands(client_msg)
+            except ConnectionError:
+                print("Connection has been lost!")
+                exit()
+            except Exception as e:
+                print(e)
+                exit()
 
 
 if __name__ == "__main__":

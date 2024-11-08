@@ -64,6 +64,8 @@ class Client:
                 server_response = self.receive()
                 self.print_to_terminal(server_response)
                 if "error" in server_response[0].keys():
+                    request = input(">>: ")
+                    self.send({"message": request})
                     continue
                 else:
                     request = input(">>: ")
