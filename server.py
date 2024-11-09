@@ -113,12 +113,12 @@ class Server:
             self.send([{"message": "Enter password: "}])
             password = self.receive()["message"]
             print("\n\n")
-            user = User.log_in(user_name, password)  # User object is not subscriptable
-            if user is not None:
-                if user.role == "user":
+            self.user = User.log_in(user_name, password)
+            if self.user is not None:
+                if self.user.role == "user":
                     self.send(
                         [{"message1": "Logged in successfully!"}, {"message2": self.user_commands["is_logged_in"]}])
-                elif user.role == "admin":
+                elif self.user.role == "admin":
                     self.send(
                         [{"message1": "Logged in successfully!"}, {"message2": self.admin_commands["is_logged_in"]}])
                 break
@@ -146,18 +146,6 @@ class Server:
             users_table.add_row(list(user.values())[:4])
         print(users_table)
 
-    def display_main_menu(self, command):
-        while True:
-            if command.casefold() in self.user_commands["logged_out"].keys():
-                match command:
-                    case "sign in":
-                        self.log_in()
-                    case "register":
-                        self.sign_up()
-            else:
-                self.send([{"error": "Unknown request"}])  # this causes the app to hang
-                break
-
     def display_users_menu(self):
         pass
 
@@ -165,17 +153,22 @@ class Server:
         pass
 
     def run_user_commands(self, command):
-        if command.casefold() in self.user_commands["is_logged_in"].keys():
-            match command:
-                case "inbox":
-                    # opens a separate submenu
-                    pass
-                case "help":
-                    self.send([{"message": self.user_commands["is_logged_in"]}])
-                case "sign out":
-                    User.log_out()
-                    self.send([{"message": "You have been successfully logged out!"}])
-                    # return to the home screen
+        while True:
+            print(self.user_commands["is_logged_in"].keys())
+            if command.casefold() in self.user_commands["is_logged_in"].keys():
+                match command:
+                    case "inbox":
+                        print("This is your inbox")
+                        pass
+                    case "help":
+                        self.send([{"message": self.user_commands["is_logged_in"]}])
+                    case "sign out":
+                        User.log_out()
+                        self.send([{"message": "You have been successfully logged out!"}])
+                        # return to the home screen
+            else:
+                self.send([{"error": "Unknown request (user commands)!"}])
+                continue
 
     def run_admin_commands(self, command):
         if command.casefold() in self.admin_commands["is_logged_in"].keys():
@@ -204,7 +197,7 @@ class Server:
                     User.log_out()
                     self.send([{"message": "You have been successfully logged out!"}])
         else:
-            self.send([{"error": "Unknown request"}])
+            self.send([{"error": "Unknown request(admin commands)!"}])
 
     def run(self):
         self.start_server()
@@ -219,10 +212,7 @@ class Server:
                             case "register":
                                 self.sign_up()
                     else:
-                        self.send([{"error": 'Unknown request!'}])
-                        continue
-
-
+                        self.send([{"error": 'Unknown request (run loop)!'}])
                 else:
                     if self.user.role == "user":
                         self.run_user_commands(client_msg)
