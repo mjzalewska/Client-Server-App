@@ -29,11 +29,6 @@ class User:
                 return user
         else:
             return None
-
-    @classmethod
-    def log_out(cls):
-        cls.is_logged_in = False
-
     @staticmethod
     def hash_password(password):
         return hashlib.sha256(password.encode()).hexdigest()

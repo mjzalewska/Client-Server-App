@@ -127,6 +127,11 @@ class Server:
                 print("\n")
                 continue
 
+    def log_out(self):
+        self.user = None
+        self.send([{"message1": "You have been successfully logged out!"},
+                   {"message2": self.user_commands["logged_out"]}])
+
     def calculate_uptime(self):
         request_time = datetime.now()
         time_diff = (request_time - self.start_time).seconds
@@ -153,22 +158,16 @@ class Server:
         pass
 
     def run_user_commands(self, command):
-        while True:
-            print(self.user_commands["is_logged_in"].keys())
-            if command.casefold() in self.user_commands["is_logged_in"].keys():
-                match command:
-                    case "inbox":
-                        print("This is your inbox")
-                        pass
-                    case "help":
-                        self.send([{"message": self.user_commands["is_logged_in"]}])
-                    case "sign out":
-                        User.log_out()
-                        self.send([{"message": "You have been successfully logged out!"}])
-                        # return to the home screen
-            else:
-                self.send([{"error": "Unknown request (user commands)!"}])
-                continue
+        if command.casefold() in self.user_commands["is_logged_in"].keys():
+            match command:
+                case "inbox":
+                    print("This is your inbox")
+                case "help":
+                    self.send([{"message": self.user_commands["is_logged_in"]}])
+                case "sign out":
+                    self.log_out()
+        else:
+            self.send([{"error": "Unknown request (user commands)!"}])
 
     def run_admin_commands(self, command):
         if command.casefold() in self.admin_commands["is_logged_in"].keys():
@@ -194,7 +193,7 @@ class Server:
                 case "inbox":
                     pass
                 case "sign out":
-                    User.log_out()
+                    self.user = None
                     self.send([{"message": "You have been successfully logged out!"}])
         else:
             self.send([{"error": "Unknown request(admin commands)!"}])
@@ -205,7 +204,7 @@ class Server:
             try:
                 client_msg = self.receive()["message"]
                 if not self.user or not self.user.is_logged_in:
-                    if client_msg in self.user_commands["logged_out"]:
+                    if client_msg in self.user_commands["logged_out"].keys():
                         match client_msg:
                             case "log in":
                                 self.log_in()
