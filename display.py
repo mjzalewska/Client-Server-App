@@ -10,9 +10,10 @@ class Display:
                     for subkey, subvalue in value.items():
                         print(f"{subkey}: {subvalue}")
                 elif isinstance(value, list):
-                    pass
+                    Display.display_tables(message)
                 else:
                     print(f"{value}")
+            print()
 
     @staticmethod
     def display_tables(message):
@@ -20,7 +21,7 @@ class Display:
             print("No data to display.")
             return
         data = message[0]["message"]
-        columns = list(data.keys())[:4]
+        columns = list(data[0].keys())[:4]
         table = PrettyTable(field_names=columns)
         for item in data:
             table.add_row(item.values())
