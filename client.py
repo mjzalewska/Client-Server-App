@@ -1,5 +1,6 @@
 import json
 import socket
+from display import Display
 from utilities import clr_screen
 
 
@@ -47,22 +48,12 @@ class Client:
             message = json.loads(data.decode("utf-8").strip())
             return message
 
-    @staticmethod
-    def print_to_terminal(received_msg):
-        for item in received_msg:
-            for key, value in item.items():
-                if isinstance(value, dict):
-                    for subkey, subvalue in value.items():
-                        print(f"{subkey}: {subvalue}")
-                else:
-                    print(f"{value}")
-
     def run(self):
         self.connect()
         while True:
             try:
                 server_response = self.receive()
-                self.print_to_terminal(server_response)
+                Display.display_message(server_response)
                 if "error" in server_response[0].keys():
                     request = input(">>: ")
                     self.send({"message": request})
