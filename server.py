@@ -22,8 +22,9 @@ class Server:
         self.user_commands = \
             {
                 "logged_out": {
-                    "log in": "log in",
-                    "register": "add a new account",
+                    "log in": "log in to an existing account",
+                    "register": "create a new account",
+                    "disconnect": "disconnect"
                 },
                 "is_logged_in": {
                     "sign out": "log out",
@@ -138,24 +139,69 @@ class Server:
         uptime_val = str(timedelta(seconds=time_diff))
         return uptime_val
 
-    @staticmethod
-    def display_users(username=None):
-        all_users = User.get(username)
-        users_table = PrettyTable()
-        users_table.field_names = [key.capiltaized() for user in all_users for key in user.keys()]
-        users_table.align[users_table.field_names[0]] = "l"
-        users_table.align[users_table.field_names[1]] = "c"
-        users_table.align[users_table.field_names[2]] = "c"
-        users_table.align[users_table.field_names[3]] = "r"
-        for user in all_users:
-            users_table.add_row(list(user.values())[:4])
-        print(users_table)
+    def get_users(self, username=None):  # this should show up in the client terminal
+        user_data = User.get(username)
+        self.send(user_data)
+        # users_table = PrettyTable()
+        # users_table.field_names = [key.capitalize() for user in user_data for key in user.keys()]
+        # users_table.align[users_table.field_names[0]] = "l"
+        # users_table.align[users_table.field_names[1]] = "c"
+        # users_table.align[users_table.field_names[2]] = "c"
+        # users_table.align[users_table.field_names[3]] = "r"
+        # for user in user_data:
+        #     users_table.add_row(list(user.values())[:4])
+        # print(users_table)
 
-    def display_users_menu(self):
-        pass
+    def get_user_input(self, fields):
+        user_data = {}
+        for field in fields:
+            self.send([{"message": f"Enter {field}: "}])
+            user_data[field] = self.receive()["message"]
+        return user_data
 
-    def display_inbox_menu(self):
-        pass
+    def manage_users(self):
+        while True:
+            user_menu_commands = {"add": "add new account",
+                                  "delete": "remove account",
+                                  "show": "show selected user record",
+                                  "show all": "show all users",
+                                  "return": "return to previous screen "}
+            self.send([{"message1": "Manage users"},
+                       {"message2": user_menu_commands}])
+            command = self.receive()["message"]
+            if command.casefold() in user_menu_commands.keys():
+                match command:
+                    case "add":
+                        required_fields = ["username", "password", "email", "user role"] #validate if username already used
+                        user_data = self.get_user_input(required_fields)
+                        if User.add(user_data["username"], user_data["password"], user_data["email"],
+                                    user_data["user role"]):
+                            self.send([{"message": f"User {user_data['username']} added successfully!"}])
+                        else:
+                            self.send([{"error": "Operation failed!"}])  # specify the error
+                        continue
+                    case "delete":
+                        self.send([{"message": "Enter username: "}])
+                        username = self.receive()["message"]
+                        self.send([{"message": f"Are you sure you want to delete user {username}? Y/N"}])
+                        client_reply = self.receive()["message"]
+                        if client_reply.upper() == "Y":
+                            if User.remove(username):
+                                self.send([{"message": f"User {username} deleted successfully!"}])
+                            else:
+                                continue
+                            continue
+
+                    case "show":  # should send data, and client should display in format desired
+                        self.send([{"message": "Enter username: "}])
+                        username = self.receive()["message"]
+                        self.get_users(username)
+                        continue
+                    case "show all":
+                        self.get_users()
+                        continue
+                    case "return":
+                        break # doesn't work as expected
 
     def run_user_commands(self, command):
         if command.casefold() in self.user_commands["is_logged_in"].keys():
@@ -166,6 +212,8 @@ class Server:
                     self.send([{"message": self.user_commands["is_logged_in"]}])
                 case "sign out":
                     self.log_out()
+                case "disconnect":
+                    pass
         else:
             self.send([{"error": "Unknown request (user commands)!"}])
 
@@ -185,16 +233,11 @@ class Server:
                     self.connection.close()
                     exit()
                 case "users":
-                    # ask if all or one or separate submenu?
-                    self.display_users()
-                    # remove selected user
-                    # add user
-                    pass
+                    self.manage_users()
                 case "inbox":
                     pass
                 case "sign out":
-                    self.user = None
-                    self.send([{"message": "You have been successfully logged out!"}])
+                    self.log_out()
         else:
             self.send([{"error": "Unknown request(admin commands)!"}])
 
