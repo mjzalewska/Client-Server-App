@@ -54,7 +54,9 @@ class Client:
             try:
                 server_response = self.receive()
                 Display.display_message(server_response)
-                if "error" in server_response[0].keys():
+                if server_response[0].get("message") == "exit":
+                    continue
+                elif "error" in server_response[0].keys():
                     request = input(">>: ")
                     self.send({"message": request})
                     continue

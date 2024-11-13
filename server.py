@@ -114,8 +114,9 @@ class Server:
             self.send([{"message": "Enter password: "}])
             password = self.receive()["message"]
             self.user = User.log_in(user_name, password)
-            if self.user is not None:
+            if self.user:
                 self.send([{"message": "Logged in successfully!"}])
+                self.display_main_menu()
                 # if self.user.role == "user":
                 #     self.send(
                 #         [{"message1": "Logged in successfully!"}, {"message2": self.user_commands["is_logged_in"]}])
@@ -129,8 +130,8 @@ class Server:
 
     def log_out(self):
         self.user = None
-        self.send([{"message1": "You have been successfully logged out!"},
-                   {"message2": self.user_commands["logged_out"]}])
+        self.send([{"message1": "You have been successfully logged out!"}])
+        self.display_main_menu()
 
     def calculate_uptime(self):
         request_time = datetime.now()
@@ -203,7 +204,8 @@ class Server:
                         continue
                     case "return":
                         self.send([{"message": "exiting"}])
-                        break  # doesn't work as expected
+                        break
+        self.display_main_menu()
 
     def run_user_commands(self, command):
         if command.casefold() in self.user_commands["is_logged_in"].keys():
@@ -220,7 +222,6 @@ class Server:
             self.send([{"error": "Unknown request (user commands)!"}])
 
     def run_admin_commands(self, command):
-        # move the commands list from log in
         if command.casefold() in self.admin_commands["is_logged_in"].keys():
             match command:
                 case "info":
@@ -275,19 +276,17 @@ if __name__ == "__main__":
     server = Server(65000)
     server.run()
 
-# user management (add, remove, log in) - better handling of the return command - currently it exits but then the
-# commands are not shown in the main admin menu, also don't want the client to display the status message ("Exiting")
-
+# refactor client-server communication protocol
+# handle client behaviour when server sends a message but no response is expected - e.g.:
+# # status: Used to indicate a status like "success", "error", or "exit_submenu".
+# # message: General user-facing messages.
+# # data: Any data or additional information the client needs.
+# to return error messages (user already exists, error when operation failed, etc) - user model
 
 # sending messages - 5 messages per inbox for regular user, no limit for admin
 # limit exceeded alert for the sender
 # message len limit - 255 chars
 
-# fix space between lines printed to client terminal
-# fix the >> sign shown when no input from client is expected (currently needs to be scrolled down)
-# to do:  to return error messages (user already exists, error when operation failed, etc) - user model
-# to do: Define standard response messages or a message structure that consistently communicates different types
-# of actions between the client and server. For example:
-# status: Used to indicate a status like "success", "error", or "exit_submenu".
-# message: General user-facing messages.
-# data: Any data or additional information the client needs.
+# refactor the app to use select
+
+
