@@ -1,7 +1,6 @@
 import json
 import socket
 from datetime import datetime, timedelta
-from prettytable import PrettyTable
 from time import sleep
 from user import User
 
@@ -108,24 +107,24 @@ class Server:
                 continue
 
     def log_in(self):
+        # after login data input incorrectly and then correctly keeps displaying error
         while True:
             self.send([{"message": "Enter username: "}])
             user_name = self.receive()["message"]
             self.send([{"message": "Enter password: "}])
             password = self.receive()["message"]
-            print("\n\n")
             self.user = User.log_in(user_name, password)
             if self.user is not None:
-                if self.user.role == "user":
-                    self.send(
-                        [{"message1": "Logged in successfully!"}, {"message2": self.user_commands["is_logged_in"]}])
-                elif self.user.role == "admin":
-                    self.send(
-                        [{"message1": "Logged in successfully!"}, {"message2": self.admin_commands["is_logged_in"]}])
+                self.send([{"message": "Logged in successfully!"}])
+                # if self.user.role == "user":
+                #     self.send(
+                #         [{"message1": "Logged in successfully!"}, {"message2": self.user_commands["is_logged_in"]}])
+                # elif self.user.role == "admin":
+                #     self.send(
+                #         [{"message1": "Logged in successfully!"}, {"message2": self.admin_commands["is_logged_in"]}])
                 break
             else:
                 self.send([{"error": "Incorrect username or password!"}])
-                print("\n")
                 continue
 
     def log_out(self):
@@ -139,18 +138,9 @@ class Server:
         uptime_val = str(timedelta(seconds=time_diff))
         return uptime_val
 
-    def get_users(self, username=None):  # this should show up in the client terminal
+    def get_users(self, username=None):  # remove??
         user_data = User.get(username)
-        self.send(user_data)
-        # users_table = PrettyTable()
-        # users_table.field_names = [key.capitalize() for user in user_data for key in user.keys()]
-        # users_table.align[users_table.field_names[0]] = "l"
-        # users_table.align[users_table.field_names[1]] = "c"
-        # users_table.align[users_table.field_names[2]] = "c"
-        # users_table.align[users_table.field_names[3]] = "r"
-        # for user in user_data:
-        #     users_table.add_row(list(user.values())[:4])
-        # print(users_table)
+        self.send([{"message": user_data}])
 
     def get_user_input(self, fields):
         user_data = {}
@@ -158,6 +148,18 @@ class Server:
             self.send([{"message": f"Enter {field}: "}])
             user_data[field] = self.receive()["message"]
         return user_data
+
+    def display_main_menu(self):
+        """Displays the main menu based on user role."""
+        if not self.user:
+            self.send([{"message": "Please log in or register."},
+                       {"data": self.user_commands["logged_out"]}])
+        elif self.user.role == "admin":
+            self.send([{"message": "Admin Main Menu"},
+                       {"data": self.admin_commands["is_logged_in"]}])
+        elif self.user.role == "user":
+            self.send([{"message": "User Main Menu"},
+                       {"data": self.user_commands["is_logged_in"]}])
 
     def manage_users(self):
         while True:
@@ -172,7 +174,7 @@ class Server:
             if command.casefold() in user_menu_commands.keys():
                 match command:
                     case "add":
-                        required_fields = ["username", "password", "email", "user role"] #validate if username already used
+                        required_fields = ["username", "password", "email", "user role"]
                         user_data = self.get_user_input(required_fields)
                         if User.add(user_data["username"], user_data["password"], user_data["email"],
                                     user_data["user role"]):
@@ -192,16 +194,16 @@ class Server:
                                 continue
                             continue
 
-                    case "show":  # should send data, and client should display in format desired
+                    case "show":
                         self.send([{"message": "Enter username: "}])
                         username = self.receive()["message"]
                         self.get_users(username)
-                        continue
                     case "show all":
                         self.get_users()
                         continue
                     case "return":
-                        break # doesn't work as expected
+                        self.send([{"message": "exiting"}])
+                        break  # doesn't work as expected
 
     def run_user_commands(self, command):
         if command.casefold() in self.user_commands["is_logged_in"].keys():
@@ -218,6 +220,7 @@ class Server:
             self.send([{"error": "Unknown request (user commands)!"}])
 
     def run_admin_commands(self, command):
+        # move the commands list from log in
         if command.casefold() in self.admin_commands["is_logged_in"].keys():
             match command:
                 case "info":
@@ -272,7 +275,19 @@ if __name__ == "__main__":
     server = Server(65000)
     server.run()
 
-# user management (add, remove, log in)
+# user management (add, remove, log in) - better handling of the return command - currently it exits but then the
+# commands are not shown in the main admin menu, also don't want the client to display the status message ("Exiting")
+
+
 # sending messages - 5 messages per inbox for regular user, no limit for admin
 # limit exceeded alert for the sender
 # message len limit - 255 chars
+
+# fix space between lines printed to client terminal
+# fix the >> sign shown when no input from client is expected (currently needs to be scrolled down)
+# to do:  to return error messages (user already exists, error when operation failed, etc) - user model
+# to do: Define standard response messages or a message structure that consistently communicates different types
+# of actions between the client and server. For example:
+# status: Used to indicate a status like "success", "error", or "exit_submenu".
+# message: General user-facing messages.
+# data: Any data or additional information the client needs.
