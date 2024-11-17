@@ -3,6 +3,7 @@ import socket
 from datetime import datetime, timedelta
 from time import sleep
 from user import User
+from utilities import load_menu_config
 
 
 class Server:
@@ -18,31 +19,8 @@ class Server:
         self.build_date = "2023-05-13"
         self.start_time = datetime.now()
         self.user = None
-        self.user_commands = \
-            {
-                "logged_out": {
-                    "log in": "log in to an existing account",
-                    "register": "create a new account",
-                    "disconnect": "disconnect"
-                },
-                "is_logged_in": {
-                    "sign out": "log out",
-                    "inbox": "go to inbox",
-                    "help": "display available commands"
-                }
-            }
-        self.admin_commands = \
-            {
-                "is_logged_in": {
-                    "close": "stop server and client",
-                    "help": "display available commands",
-                    "inbox": "go to inbox",
-                    "info": "display server version and build date",
-                    "sign out": "log out",
-                    "uptime": "display server uptime",
-                    "users": "see registered users",
-                }
-            }
+        self.user_commands = None
+        self.admin_commands = None
         self.connection = None
         self.address = None
         self.db = "users.json"
@@ -54,8 +32,9 @@ class Server:
             print(f"Listening on {self.host}:{self.port}")
             self.connection, self.address = s.accept()
             print(f"Accepted connection from {self.address[0]}:{self.address[1]}")
+            self.user_commands = load_menu_config("login_menu", "logged_out", "user")
             self.send([{"message1": f"Successfully connected to: {self.host}"},
-                       {"message2": self.user_commands["logged_out"]}])
+                       {"message2": self.user_commands}])
 
     def send(self, msg):
         try:
@@ -98,8 +77,9 @@ class Server:
             email = self.receive()["message"]
             print()
             if User.add(username, password, email):
+                # self.user_commands = load_menu_config("login_menu", "logged_out", "user")
                 self.send([{"message1": "Sign up successful!"},
-                           {"message2": self.user_commands["logged_out"]}])
+                           {"message2": self.user_commands}])
                 break
             else:
                 self.send([{"error": "Username already in use!"}])
@@ -108,25 +88,19 @@ class Server:
 
     def log_in(self):
         # after login data input incorrectly and then correctly keeps displaying error
+        # problem most likely on client side (processing messages with no input expected)
         while True:
             self.send([{"message": "Enter username: "}])
             user_name = self.receive()["message"]
             self.send([{"message": "Enter password: "}])
             password = self.receive()["message"]
             self.user = User.log_in(user_name, password)
-            if self.user:
+            if self.user is not None:
                 self.send([{"message": "Logged in successfully!"}])
                 self.display_main_menu()
-                # if self.user.role == "user":
-                #     self.send(
-                #         [{"message1": "Logged in successfully!"}, {"message2": self.user_commands["is_logged_in"]}])
-                # elif self.user.role == "admin":
-                #     self.send(
-                #         [{"message1": "Logged in successfully!"}, {"message2": self.admin_commands["is_logged_in"]}])
                 break
             else:
                 self.send([{"error": "Incorrect username or password!"}])
-                continue
 
     def log_out(self):
         self.user = None
@@ -153,26 +127,30 @@ class Server:
     def display_main_menu(self):
         """Displays the main menu based on user role."""
         if not self.user:
+            self.user_commands = load_menu_config("login_menu", "logged_out", "user")
             self.send([{"message": "Please log in or register."},
-                       {"data": self.user_commands["logged_out"]}])
+                       {"data": self.user_commands}])
         elif self.user.role == "admin":
+            self.admin_commands = load_menu_config("login_menu", "logged_in", "admin")
             self.send([{"message": "Admin Main Menu"},
-                       {"data": self.admin_commands["is_logged_in"]}])
+                       {"data": self.admin_commands}])
         elif self.user.role == "user":
+            self.user_commands = load_menu_config("login_menu", "logged_in", "user")
             self.send([{"message": "User Main Menu"},
-                       {"data": self.user_commands["is_logged_in"]}])
+                       {"data": self.user_commands}])
 
     def manage_users(self):
         while True:
-            user_menu_commands = {"add": "add new account",
-                                  "delete": "remove account",
-                                  "show": "show selected user record",
-                                  "show all": "show all users",
-                                  "return": "return to previous screen "}
+            # self.admin_commands = load_menu_config("manage_users_menu", "logged_in", "admin")
+            # user_menu_commands = {"add": "add new account",
+            #                       "delete": "remove account",
+            #                       "show": "show selected user record",
+            #                       "show all": "show all users",
+            #                       "return": "return to previous screen "}
             self.send([{"message1": "Manage users"},
-                       {"message2": user_menu_commands}])
+                       {"message2": self.admin_commands}])
             command = self.receive()["message"]
-            if command.casefold() in user_menu_commands.keys():
+            if command.casefold() in self.admin_commands.keys():
                 match command:
                     case "add":
                         required_fields = ["username", "password", "email", "user role"]
@@ -208,12 +186,12 @@ class Server:
         self.display_main_menu()
 
     def run_user_commands(self, command):
-        if command.casefold() in self.user_commands["is_logged_in"].keys():
+        if command.casefold() in self.user_commands.keys():
             match command:
                 case "inbox":
                     print("This is your inbox")
                 case "help":
-                    self.send([{"message": self.user_commands["is_logged_in"]}])
+                    self.send([{"message": self.user_commands}])
                 case "sign out":
                     self.log_out()
                 case "disconnect":
@@ -222,7 +200,7 @@ class Server:
             self.send([{"error": "Unknown request (user commands)!"}])
 
     def run_admin_commands(self, command):
-        if command.casefold() in self.admin_commands["is_logged_in"].keys():
+        if command.casefold() in self.admin_commands.keys():
             match command:
                 case "info":
                     self.send([{"message": f"version: {self.version}, build: {self.build_date}"}])
@@ -230,7 +208,7 @@ class Server:
                     uptime = self.calculate_uptime()
                     self.send([{"message": f"server uptime (hh:mm:ss): {uptime}"}])
                 case "help":
-                    self.send([{"message": self.admin_commands["is_logged_in"]}])
+                    self.send([{"message": self.admin_commands}])
                 case "close":
                     print("Shutting down...")
                     sleep(2)
@@ -251,7 +229,8 @@ class Server:
             try:
                 client_msg = self.receive()["message"]
                 if not self.user or not self.user.is_logged_in:
-                    if client_msg in self.user_commands["logged_out"].keys():
+                    self.user_commands = load_menu_config("login_menu", "logged_out", "user")
+                    if client_msg in self.user_commands.keys():
                         match client_msg:
                             case "log in":
                                 self.log_in()
@@ -261,8 +240,10 @@ class Server:
                         self.send([{"error": 'Unknown request (run loop)!'}])
                 else:
                     if self.user.role == "user":
+                        self.user_commands = load_menu_config("login_menu", "logged_in", "user")
                         self.run_user_commands(client_msg)
                     elif self.user.role == "admin":
+                        self.admin_commands = load_menu_config("login_menu", "logged_in", "admin")
                         self.run_admin_commands(client_msg)
             except ConnectionError:
                 print("Connection has been lost!")
@@ -281,12 +262,10 @@ if __name__ == "__main__":
 # # status: Used to indicate a status like "success", "error", or "exit_submenu".
 # # message: General user-facing messages.
 # # data: Any data or additional information the client needs.
-# to return error messages (user already exists, error when operation failed, etc) - user model
+# to return error messages (user already exists, error when operation failed, etc.) - user model
 
 # sending messages - 5 messages per inbox for regular user, no limit for admin
 # limit exceeded alert for the sender
 # message len limit - 255 chars
 
 # refactor the app to use select
-
-
