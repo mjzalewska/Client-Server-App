@@ -1,4 +1,5 @@
 from os import system, name
+import json
 
 
 def clr_screen():
@@ -11,3 +12,8 @@ def clr_screen():
     else:
         _ = system('clear')
 
+
+def load_menu_config(menu_type, state, user_type, filepath="menu_config.json"):
+    with open(filepath, "r") as config_file:
+        menu = json.load(config_file)[menu_type][state][user_type]
+        return menu

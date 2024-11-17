@@ -1,0 +1,46 @@
+{
+  "login_menu": {
+    "logged_out": {
+      "user": {
+        "log in": "log in to an existing account",
+        "register": "create a new account",
+        "disconnect": "disconnect"
+      },
+      "admin": {
+        "log in": "log in to an existing account",
+        "register": "create a new account",
+        "disconnect": "disconnect"
+      }
+    },
+    "logged_in": {
+      "user": {
+        "inbox": "go to inbox",
+        "sign out": "log out",
+        "help": "display available commands"
+      },
+      "admin": {
+        "close": "stop server and client",
+        "help": "display available commands",
+        "inbox": "go to inbox",
+        "info": "display server version and build date",
+        "sign out": "log out",
+        "uptime": "display server uptime",
+        "users": "see registered users"
+      }
+    }
+  },
+  "manage_users_menu": {
+    "logged_in": {
+      "admin": {
+        "add": "add new account",
+        "delete": "remove account",
+        "show": "show selected user record",
+        "show all": "show all users",
+        "return": "return to previous screen "
+      }
+    }
+  },
+  "inbox_menu": {
+
+  }
+}
