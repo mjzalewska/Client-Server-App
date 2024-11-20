@@ -66,7 +66,7 @@ class Server:
                 self.send({"status": "error",
                            "message": "Invalid message format: missing header!",
                            "data": "",
-                           "event": "info"})
+                           "event": ""})
                 exit()
             data = b"".join(msg_parts)
             message = json.loads(data.decode("utf-8").strip())

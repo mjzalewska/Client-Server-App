@@ -4,16 +4,24 @@ from prettytable import PrettyTable
 class Display:
     @staticmethod
     def display_message(message):
-        for item in message:
-            for key, value in item.items():
-                if isinstance(value, dict):
-                    for subkey, subvalue in value.items():
-                        print(f"{subkey}: {subvalue}")
-                elif isinstance(value, list):
-                    Display.display_tables(message)
-                else:
-                    print(f"{value}")
-            print()
+        print(message)
+        if message["event_type"] in ["exit_to_main_menu"]:
+            pass
+        else:
+            print(message["message"])
+            if message["data"]:
+                for key, value in message["data"].items(): # różnicowaanie "data" na tables in nie tables przez eventy?
+                    print(f"{key}: {value}")
+
+
+        #         if isinstance(value, dict):
+        #             for subkey, subvalue in value.items():
+        #                 print(f"{subkey}: {subvalue}")
+        #         elif isinstance(value, list):
+        #             Display.display_tables(message)
+        #         else:
+        #             print(f"{value}")
+        #     print()
 
     @staticmethod
     def display_tables(message):
