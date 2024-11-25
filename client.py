@@ -57,25 +57,27 @@ class Client:
             try:
                 server_response = self.receive()
                 Display.display_message(server_response)
-                if server_response[0].get("message") == "exit":
+                if server_response["event"] == "return":
                     continue
-                elif "error" in server_response[0].keys():
-                    request = input(">>: ")
-                    self.send({"status": "success",
-                               "message": request,
-                               "data": {},
-                               "event": ""})
+                elif server_response["status"] == "error":
+                    # request = input(">>: ")
+                    # self.send({"status": "success",
+                    #            "message": request,
+                    #            "data": {},
+                    #            "event": ""})
                     continue
                 else:
                     request = input(">>: ")
-                    self.send({"status": "success",
-                               "message": request,
-                               "data": {},
-                               "event": ""})
+                    if request == "close":
+                        self.client_sock.close()
+                        break
+                    else:
+                        self.send({"status": "success",
+                                   "message": request,
+                                   "data": {},
+                                   "event": ""})
                 # clr_screen() # turn on in final
-                if request == "close":
-                    self.client_sock.close()
-                    break
+
             except ConnectionError:
                 print("Connection to the host has been lost")
                 exit()

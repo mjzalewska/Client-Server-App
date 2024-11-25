@@ -2,7 +2,7 @@ import json
 import socket
 from datetime import datetime, timedelta
 from time import sleep
-from user import User
+from user_model import User
 from utilities import load_menu_config
 
 
@@ -34,8 +34,8 @@ class Server:
             self.user_commands = load_menu_config("login_menu", "logged_out", "user")
             self.send({"status": "success",
                        "message": f"Successfully connected to: {self.host}",
-                       "data": self.user_commands,
-                       "event_type": "info"
+                       "data": (self.user_commands, "list"),
+                       "event": ""
                        })
 
     def send(self, msg):
@@ -65,7 +65,7 @@ class Server:
             except ValueError:
                 self.send({"status": "error",
                            "message": "Invalid message format: missing header!",
-                           "data": "",
+                           "data": {},
                            "event": ""})
                 exit()
             data = b"".join(msg_parts)
@@ -89,11 +89,11 @@ class Server:
                         "data": {},
                         "event": ""}))
             email = self.receive()["message"]
-            if User.add(username, password, email):
+            if User.register(username, password, email):
                 # self.user_commands = load_menu_config("login_menu", "logged_out", "user")
                 self.send({"status": "success",
                            "message": "Sign up successful!",
-                           "data": self.user_commands,
+                           "data": (self.user_commands, "list"),
                            "event": ""})
                 break
             else:
@@ -149,7 +149,7 @@ class Server:
         user_data = User.get(username)
         self.send({"status": "success",
                    "message": "",
-                   "data": user_data,
+                   "data": (user_data, "tabular"),
                    "event": ""})
 
     def get_user_input(self, fields):
@@ -168,19 +168,19 @@ class Server:
             self.user_commands = load_menu_config("login_menu", "logged_out", "user")
             self.send({"status": "success",
                        "message": "Please log in or register",
-                       "data": self.user_commands,
+                       "data": (self.user_commands, "list"),
                        "event": ""})
         elif self.user.role == "admin":
             self.admin_commands = load_menu_config("login_menu", "logged_in", "admin")
             self.send({"status": "success",
                        "message": "Admin Main Menu",
-                       "data": self.admin_commands,
+                       "data": (self.admin_commands, "list"),
                        "event": ""})
         elif self.user.role == "user":
             self.user_commands = load_menu_config("login_menu", "logged_in", "user")
             self.send({"status": "success",
                        "message": "User Main Menu",
-                       "data": self.user_commands,
+                       "data": (self.user_commands, "list"),
                        "event": ""})
 
     def manage_users(self):
@@ -193,7 +193,7 @@ class Server:
             #                       "return": "return to previous screen "}
             self.send({"status": "success",
                        "message": "User management",
-                       "data": self.admin_commands,
+                       "data": (self.admin_commands, "list"),
                        "event": ""})
             command = self.receive()["message"]
             if command.casefold() in self.admin_commands.keys():
@@ -201,8 +201,8 @@ class Server:
                     case "add":
                         required_fields = ["username", "password", "email", "user role"]
                         user_data = self.get_user_input(required_fields)
-                        if User.add(user_data["username"], user_data["password"], user_data["email"],
-                                    user_data["user role"]):
+                        if User.register(user_data["username"], user_data["password"], user_data["email"],
+                                         user_data["user role"]):
                             self.send({"status": "success",
                                        "message": f"User {user_data['username']} added successfully!",
                                        "data": {},
@@ -225,7 +225,7 @@ class Server:
                                    "event": ""})
                         client_reply = self.receive()["message"]
                         if client_reply.upper() == "Y":
-                            if User.remove(username):
+                            if User.delete_account(username):
                                 self.send({"status": "success",
                                            "message": f"User {username} deleted successfully!",
                                            "data": {},
@@ -248,7 +248,7 @@ class Server:
                         self.send({"status": "success",
                                    "message": "",
                                    "data": {},
-                                   "event": "exit_to_main_menu"})
+                                   "event": "return"})
                         break
         self.display_main_menu()
 
@@ -260,7 +260,7 @@ class Server:
                 case "help":
                     self.send({"status": "success",
                                "message": "This server can run the following commands: ",
-                               "data": self.user_commands,
+                               "data": (self.user_commands, "list"),
                                "event": ""})
                 case "sign out":
                     self.log_out()
@@ -289,7 +289,7 @@ class Server:
                 case "help":
                     self.send({"status": "success",
                                "message": "This server can run the follwing commands: ",
-                               "data": self.admin_commands,
+                               "data": (self.admin_commands, "list"),
                                "event": ""})
                 case "close":
                     print("Shutting down...")
@@ -303,7 +303,7 @@ class Server:
                 case "sign out":
                     self.log_out()
         else:
-            self.send({"status":"error",
+            self.send({"status": "error",
                        "message": "Unknown request(admin commands)!",
                        "data": {},
                        "event": ""})
