@@ -3,9 +3,9 @@ from user_dao import UserDAO
 
 
 class User:
-    def __init__(self, username, password, email, role="user", inbox=None):
+    def __init__(self, username, password_hash, email, role="user", inbox=None):
         self.username = username
-        self.password = password
+        self.password_hash = password_hash
         self.email = email
         self.role = role
         self.inbox = inbox if inbox else None
@@ -15,8 +15,8 @@ class User:
     def log_in(cls, username, password):
         """Authenticate and return a user instance if credentials are valid."""
         user_data = UserDAO.get_user(username)
-        if user_data and user_data["password_hash"] == UserDAO.hash_password(password):
-            user = cls(**user_data)
+        if user_data and user_data['password_hash'] == UserDAO.hash_password(password):
+            user = cls(username=username, **user_data)
             user.is_logged_in = True
             return user
         return None
@@ -42,6 +42,14 @@ class User:
             UserDAO.delete_user(username)
             return True
         return False
+
+    @staticmethod
+    def show(username=None):
+        """Displays user record"""
+        try:
+            return UserDAO.get_user(username)
+        except KeyError:
+            return {"error": "Incorrect username or user does not exist!"}
 
     def send_message(self, recipient, message):
         recipient_data = UserDAO.get_user(recipient)
