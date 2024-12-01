@@ -145,8 +145,8 @@ class Server:
         uptime_val = str(timedelta(seconds=time_diff))
         return uptime_val
 
-    def get_users(self, username=None):  # remove??
-        user_data = User.get(username)
+    def get_users(self, username=None):
+        user_data = User.show(username)
         self.send({"status": "success",
                    "message": "",
                    "data": (user_data, "tabular"),
@@ -185,19 +185,14 @@ class Server:
 
     def manage_users(self):
         while True:
-            # self.admin_commands = load_menu_config("manage_users_menu", "logged_in", "admin")
-            # user_menu_commands = {"add": "add new account",
-            #                       "delete": "remove account",
-            #                       "show": "show selected user record",
-            #                       "show all": "show all users",
-            #                       "return": "return to previous screen "}
+            self.admin_commands = load_menu_config("manage_users_menu", "logged_in", "admin")
             self.send({"status": "success",
                        "message": "User management",
                        "data": (self.admin_commands, "list"),
                        "event": ""})
             command = self.receive()["message"]
             if command.casefold() in self.admin_commands.keys():
-                match command:
+                match command.casefold():
                     case "add":
                         required_fields = ["username", "password", "email", "user role"]
                         user_data = self.get_user_input(required_fields)
@@ -274,7 +269,7 @@ class Server:
 
     def run_admin_commands(self, command):
         if command.casefold() in self.admin_commands.keys():
-            match command:
+            match command.casefold():
                 case "info":
                     self.send({"status": "success",
                                "message": f"version: {self.version}, build: {self.build_date}",

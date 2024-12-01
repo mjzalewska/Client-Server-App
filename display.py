@@ -4,7 +4,7 @@ from prettytable import PrettyTable
 class Display:
     @staticmethod
     def display_message(message):
-        if message["event"] in ["exit_to_main_menu"]:
+        if message["event"] == "return":
             pass
         else:
             print(message["message"])
@@ -21,9 +21,12 @@ class Display:
         if not message:
             print("No data to display.")
             return
-        data = message["data"]
-        columns = list(data.keys())[:4]
+        data = message["data"][0]
+        columns = ["username", "password_hash", "email", "role"]
         table = PrettyTable(field_names=columns)
-        for item in data:
-            table.add_row(item.values())
+        for username, user_data in data.items():
+            record = [username]
+            data = [value for value in user_data.values()]
+            record.extend(data)
+            table.add_row(record)
         print(table)
