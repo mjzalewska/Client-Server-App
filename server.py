@@ -1,4 +1,5 @@
 import json
+import logging
 import socket
 from datetime import datetime, timedelta
 from time import sleep
@@ -16,13 +17,15 @@ class Server:
         else:
             self.server_sock = server_sock
         self.version = "1.1.0"
-        self.build_date = "2023-05-13"
+        self.build_date = "2023-12-03"
         self.start_time = datetime.now()
         self.user = None
         self.user_commands = None
         self.admin_commands = None
         self.connection = None
         self.address = None
+        logging.basicConfig(filename='server.log', level=logging.INFO,
+                            format='%(asctime)s - %(levelname)s - %(message)s')
 
     def start_server(self):
         with self.server_sock as s:
@@ -104,25 +107,15 @@ class Server:
                 continue
 
     def log_in(self):
-        # after login data input incorrectly and then correctly keeps displaying error
-        # problem most likely on client side (processing messages with no input expected)
         while True:
-            self.send({"status": "success",
-                       "message": "Enter username: ",
-                       "data": {},
-                       "event": ""})
-            user_name = self.receive()["message"]
-            self.send({"status": "success",
-                       "message": "Enter password: ",
-                       "data": {},
-                       "event": ""})
-            password = self.receive()["message"]
-            self.user = User.log_in(user_name, password)
+            required_fields = ["username", "password"]
+            user_data = self.get_user_input(required_fields)
+            self.user = User.log_in(user_data["username"], user_data["password"])
             if self.user is not None:
                 self.send({"status": "success",
                            "message": "Logged in successfully!",
                            "data": {},
-                           "event": ""})
+                           "event": "info"})
                 self.display_main_menu()
                 break
             else:
@@ -130,6 +123,9 @@ class Server:
                            "message": "Incorrect username or password!",
                            "data": {},
                            "event": ""})
+                logging.error(f"Failed login attempt for user: {user_data['username']}")
+                self.receive()
+                continue
 
     def log_out(self):
         self.user = None
@@ -206,7 +202,7 @@ class Server:
                             self.send({"status": "error",
                                        "message": "Operation failed!",
                                        "data": {},
-                                       "event": ""})  # specify the error
+                                       "event": ""})
                         continue
                     case "delete":
                         self.send({"status": "success",
@@ -224,7 +220,7 @@ class Server:
                                 self.send({"status": "success",
                                            "message": f"User {username} deleted successfully!",
                                            "data": {},
-                                           "event": ""})
+                                           "event": "info"})
                             else:
                                 continue
                             continue
@@ -265,7 +261,7 @@ class Server:
             self.send({"status": "error",
                        "message": "Unknown request (user commands)!",
                        "data": {},
-                       "event": ""})
+                       "event": "info"})
 
     def run_admin_commands(self, command):
         if command.casefold() in self.admin_commands.keys():
@@ -320,7 +316,7 @@ class Server:
                         self.send({"status": "error",
                                    "message": "Unknown request (run loop)!",
                                    "data": {},
-                                   "event": ""})
+                                   "event": "info"})
                 else:
                     if self.user.role == "user":
                         self.user_commands = load_menu_config("login_menu", "logged_in", "user")
@@ -341,10 +337,6 @@ if __name__ == "__main__":
     server.run()
 
 # refactor client-server communication protocol
-# handle client behaviour when server sends a message but no response is expected - e.g.:
-# # status: Used to indicate a status like "success", "error", or "exit_submenu".
-# # message: General user-facing messages.
-# # data: Any data or additional information the client needs.
 # to return error messages (user already exists, error when operation failed, etc.) - user model
 
 # sending messages - 5 messages per inbox for regular user, no limit for admin
@@ -352,3 +344,4 @@ if __name__ == "__main__":
 # message len limit - 255 chars
 
 # refactor the app to use select
+# refactor log_in, sign-up using get_user input (add in admin commands should use sign-up)
