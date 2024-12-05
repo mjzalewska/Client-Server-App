@@ -44,5 +44,4 @@ class DbManager:
     def get(cls, key=None):
         """Retrieve all data or a specific record by key."""
         data = cls._read_data()
-        return data if key is None else data.get(key)
-
+        return data if key is None else {key: data.get(key)}

@@ -29,3 +29,4 @@ class Display:
             record.extend(data)
             table.add_row(record)
         print(table)
+

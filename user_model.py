@@ -15,8 +15,8 @@ class User:
     def log_in(cls, username, password):
         """Authenticate and return a user instance if credentials are valid."""
         user_data = UserDAO.get_user(username)
-        if user_data and user_data['password_hash'] == UserDAO.hash_password(password):
-            user = cls(username=username, **user_data)
+        if user_data and user_data[username]['password_hash'] == UserDAO.hash_password(password):
+            user = cls(username=username, **user_data[username])
             user.is_logged_in = True
             return user
         return None
