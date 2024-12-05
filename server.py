@@ -302,16 +302,14 @@ class Server:
                                 self.register(["username", "password", "email"])
                     else:
                         self.send({"status": "error",
-                                   "message": "Unknown request (run loop)!",
-                                   "data": {},
+                                   "message": "Unknown request. Choose correct command!",
+                                   "data": (self.user_commands, "list"),
                                    "event": ""})
                         logging.error(f"Bad request received from {self.address[0]}:{self.address[1]}")
                 else:
                     if self.user.role == "user":
-                        # self.user_commands = load_menu_config("login_menu", "logged_in", "user")
                         self.run_user_menu(client_msg)
                     elif self.user.role == "admin":
-                        # self.admin_commands = load_menu_config("login_menu", "logged_in", "admin")
                         self.run_admin_menu(client_msg)
             except ConnectionError:
                 print("Connection has been lost!")
