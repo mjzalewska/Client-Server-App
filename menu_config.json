@@ -15,6 +15,7 @@
     "logged_in": {
       "user": {
         "inbox": "go to inbox",
+        "info": "display user data",
         "sign out": "log out",
         "help": "display available commands"
       },
@@ -25,7 +26,7 @@
         "info": "display server version and build date",
         "sign out": "log out",
         "uptime": "display server uptime",
-        "users": "see registered users"
+        "users": "manage users"
       }
     }
   },

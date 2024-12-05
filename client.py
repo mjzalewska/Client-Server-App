@@ -57,17 +57,11 @@ class Client:
             try:
                 server_response = self.receive()
                 Display.display_message(server_response)
-                if server_response["event"] == "return":
-                    continue
-                elif server_response["status"] == "error":
-                    # request = input(">>: ")
-                    # self.send({"status": "success",
-                    #            "message": request,
-                    #            "data": {},
-                    #            "event": ""})
+                if server_response["event"] in ["return", "info"]:
                     continue
                 else:
                     request = input(">>: ")
+                    print()
                     if request == "close":
                         self.client_sock.close()
                         break
