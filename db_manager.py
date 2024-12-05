@@ -45,3 +45,4 @@ class DbManager:
         """Retrieve all data or a specific record by key."""
         data = cls._read_data()
         return data if key is None else data.get(key)
+

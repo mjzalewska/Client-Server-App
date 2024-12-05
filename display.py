@@ -14,7 +14,6 @@ class Display:
                         print(f"{key}: {value}")
                 elif message["data"][1] == "tabular":
                     Display.display_tables(message)
-        print()
 
     @staticmethod
     def display_tables(message):

@@ -23,8 +23,11 @@ class UserDAO:
     def save_user(user_data):
         """Save user data."""
         username = user_data.get("username")
+        data = {"password_hash": user_data.get("password_hash"),
+                "email": user_data.get("email"),
+                "role": user_data.get("role")}
         if username:
-            DbManager.save(username, user_data)
+            DbManager.save(username, data)
 
     @staticmethod
     def delete_user(username):
