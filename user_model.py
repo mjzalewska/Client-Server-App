@@ -60,3 +60,4 @@ class User:
             recipient_data["inbox"][(day, month, year, time, self.username)] = message
             return True
         return False
+

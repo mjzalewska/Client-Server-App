@@ -76,20 +76,20 @@ class Server:
             return message
 
     def register(self, required_fields):
-        while True:
-            user_data = self.get_user_input(required_fields)
-            if User.register(user_data["username"], user_data["password"], user_data["email"]):
-                self.send({"status": "success",
-                           "message": "Sign up successful!",
-                           "data": (self.user_commands, "list"),
-                           "event": ""})
-                break
-            else:
-                self.send({"status": "error",
-                           "message": "Operation failed!",  # provide reason, throw error after username provided
-                           "data": {},
-                           "event": ""})
-                continue
+        # while True:
+        user_data = self.get_user_input(required_fields)
+        if User.register(user_data["username"], user_data["password"], user_data["email"]):
+            self.send({"status": "success",
+                       "message": "Sign up successful!",
+                       "data": (self.user_commands, "list"),
+                       "event": ""})
+            # break
+        else:
+            self.send({"status": "error",
+                       "message": "Operation failed!",  # provide reason, throw error after username provided
+                       "data": {},
+                       "event": ""})
+            # continue
 
     def log_in(self):
         while True:
@@ -101,7 +101,7 @@ class Server:
                            "message": "Logged in successfully!",
                            "data": {},
                            "event": "info"})
-                self.display_main_menu()
+                self.run_main_menu()
                 break
             else:
                 self.send({"status": "error",
@@ -116,7 +116,7 @@ class Server:
                    "message": "You have been successfully logged out!",
                    "data": {},
                    "event": "info"})
-        self.display_main_menu()
+        self.run_main_menu()
 
     def calculate_uptime(self):
         request_time = datetime.now()
@@ -129,7 +129,7 @@ class Server:
         self.send({"status": "success",
                    "message": "",
                    "data": (user_data, "tabular"),
-                   "event": "info"})
+                   "event": ""})
 
     def get_user_input(self, fields):
         user_data = {}
@@ -141,7 +141,7 @@ class Server:
             user_data[field] = self.receive()["message"]
         return user_data
 
-    def display_main_menu(self):
+    def run_main_menu(self):
         """Displays the main menu based on user role."""
         if not self.user:
             self.user_commands = load_menu_config("login_menu", "logged_out", "user")
@@ -163,7 +163,7 @@ class Server:
                        "event": ""})
 
     def run_manage_users_menu(self):
-        while True:
+        # while True:
             self.admin_commands = load_menu_config("manage_users_menu", "logged_in", "admin")
             self.send({"status": "success",
                        "message": "User management",
@@ -187,7 +187,6 @@ class Server:
                                        "data": {},
                                        "event": ""})
                             logging.error(f"New user signup failed for username: {user_data['username']}")
-                        continue
                     case "delete":
                         self.send({"status": "success",
                                    "message": "Enter username: ",
@@ -206,8 +205,11 @@ class Server:
                                            "data": {},
                                            "event": "info"})
                             else:
-                                continue
-                            continue
+                                self.send({"status": "error",
+                                           "message": f"User {username} does not exist!", #update error message
+                                           "data": {},
+                                           "event": ""})
+                            # continue
 
                     case "show":
                         self.send({"status": "success",
@@ -218,14 +220,20 @@ class Server:
                         self.get_users(username)
                     case "show all":
                         self.get_users()
-                        continue
+                        # continue
                     case "return":
                         self.send({"status": "success",
                                    "message": "",
                                    "data": {},
                                    "event": "return"})
-                        break
-        self.display_main_menu()
+                        # break
+            else:
+                self.send({"status": "error",
+                           "message": "Unknown request. Choose correct command!",
+                           "data": (self.admin_commands, "list"),
+                           "event": ""})
+                logging.error(f"Bad request received from {self.address[0]}:{self.address[1]}")
+        # self.display_main_menu()
 
     def run_user_menu(self, command):
         if command.casefold() in self.user_commands.keys():
@@ -323,13 +331,16 @@ if __name__ == "__main__":
     server = Server(65000)
     server.run()
 
-# refactor the app to use select
-# refactor display to correctly dispplay tabular data (single and multiple users)
+
+# manage users menu - when signup fails returns to menu on seconf attempt, same with return - returns on second attempt
+# jest opóźnienie w obsłudze komend
+
 
 # sending messages - 5 messages per inbox for regular user, no limit for admin
 # limit exceeded alert for the sender
 # message len limit - 255 chars
 
-# to return error messages (user already exists, error when operation failed, etc.) - user model
 # data validation for email and password len
+# to return error messages (user already exists, error when operation failed, etc.) - user model
 # refactor receive
+# refactor the app to use select

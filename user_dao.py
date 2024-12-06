@@ -12,7 +12,7 @@ class UserDAO:
     @staticmethod
     def user_exists(username):
         """Check if a user exists in the database."""
-        return DbManager.get(username) is not None
+        return DbManager.get(username)[username] is not None
 
     @staticmethod
     def get_user(username):
