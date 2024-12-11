@@ -14,6 +14,7 @@ class User:
     @classmethod
     def log_in(cls, username, password):
         """Authenticate and return a user instance if credentials are valid."""
+
         user_data = UserDAO.get_user(username)
         if user_data and user_data[username]['password_hash'] == UserDAO.hash_password(password):
             user = cls(username=username, **user_data[username])
@@ -47,8 +48,11 @@ class User:
     def show(username=None):
         """Displays user record"""
         try:
-            return UserDAO.get_user(username)
-        except KeyError:
+            if UserDAO.get_user(username) is not None:
+                return UserDAO.get_user(username)
+            else:
+                raise TypeError
+        except TypeError:
             return {"error": "Incorrect username or user does not exist!"}
 
     def send_message(self, recipient, message):
@@ -60,4 +64,3 @@ class User:
             recipient_data["inbox"][(day, month, year, time, self.username)] = message
             return True
         return False
-
