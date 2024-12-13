@@ -67,36 +67,37 @@ class Client:
             return message
 
     def run(self):
-        self.connect()
-        while True:
-            try:
-                server_response = self.receive()
-                Display.display_message(server_response)
-                if server_response.get("event") == "info":
-                    continue
-                else:
-                    request = input(">>: ")
-                    print()
-                    if request == "close":
-                        self.client_sock.close()
-                        break
+        try:
+            self.connect()
+            while True:
+                try:
+                    server_response = self.receive()
+                    Display.display_message(server_response)
+                    if server_response.get("event") == "info":
+                        continue
                     else:
-                        self.send({"status": "success",
-                                   "message": request,
-                                   "data": {},
-                                   "event": ""})
-                # clr_screen() # turn on in final
-            except ConnectionError as e:
-                logging.error(f"Connection to the host has been lost: {e}")
-                raise
-            except KeyError as e:
-                logging.error(f"Invalid server response format: {e}")
-                raise ValueError(f"Server sent invalid response: missing {e}")
-            except json.JSONDecodeError as e:
-                logging.error(f"Invalid JSON in server response: {e}")
-                raise
-            finally:
-                self.client_sock.close()
+                        request = input(">>: ")
+                        print()
+                        if request == "close":
+                            self.client_sock.close()
+                            break
+                        else:
+                            self.send({"status": "success",
+                                       "message": request,
+                                       "data": {},
+                                       "event": ""})
+                    # clr_screen() # turn on in final
+                except ConnectionError as e:
+                    logging.error(f"Connection to the host has been lost: {e}")
+                    raise
+                except KeyError as e:
+                    logging.error(f"Invalid server response format: {e}")
+                    raise ValueError(f"Server sent invalid response: missing {e}")
+                except json.JSONDecodeError as e:
+                    logging.error(f"Invalid JSON in server response: {e}")
+                    raise
+        finally:
+            self.client_sock.close()
 
 
 if __name__ == "__main__":
