@@ -104,7 +104,6 @@ class DbManager:
                 raise KeyError(f"No record found for {key}")
             del data[key]
             cls._write_data(data)
-            return {"message": f"Deleted record for {key}"}
         except KeyError as e:
             logging.error(f"Delete failed - key not found: {e}")
             raise
@@ -125,6 +124,7 @@ class DbManager:
 
         Raises:
             ValueError: If key is invalid
+            KeyError: If the key doesn't exist
         """
         try:
             data = cls._read_data()
@@ -132,9 +132,10 @@ class DbManager:
                 return data
             if not isinstance(key, str):
                 raise ValueError("Key must be a string")
-
-            return  {key: data.get(key)}
-        except ValueError as e:
+            if key not in data:
+                raise KeyError(f"No record found for {key}")
+            return {key: data.get(key)}
+        except (ValueError, KeyError) as e:
             logging.error(f"Invalid key type: {e}")
             raise
         except OSError as e:

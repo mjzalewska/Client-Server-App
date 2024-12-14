@@ -76,11 +76,11 @@ class UserDAO:
         """
         if not isinstance(username, str):
             raise TypeError("Username must be a string")
-        if not username:
+        if not username.strip():
             raise ValueError("Username cannot be empty")
         try:
             return DbManager.get(username)
-        except (ValueError, OSError) as e:
+        except (ValueError, KeyError) as e:
             logging.error(f"Failed to retrieve user data: {e}")
             raise
 
@@ -115,7 +115,7 @@ class UserDAO:
                     "email": user_data.get("email"),
                     "role": user_data.get("role")}
             DbManager.save(username, data)
-        except (ValueError, TypeError, OSError) as e:
+        except (ValueError, TypeError,) as e:
             logging.error(f"Failed to save user data: {e}")
             raise
 
@@ -135,11 +135,10 @@ class UserDAO:
         """
         if not isinstance(username, str):
             raise TypeError("Username must be a string")
-        if not username:
+        if not username.strip():
             raise ValueError("Username cannot be empty")
         try:
-            result = DbManager.delete(username)
-            if "error" in result:
-                raise KeyError(result["error"])
-        except (KeyError, OSError) as e:
+            DbManager.delete(username)
+        except KeyError as e:
             logging.error(f"Failed to delete user {e}")
+            raise
