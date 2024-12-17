@@ -1,6 +1,8 @@
 import json
 import logging
 import socket
+
+from communication import CommunicationProtocol
 from display import Display
 from utilities import clr_screen
 
@@ -14,7 +16,7 @@ class Client:
                 self.client_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             else:
                 self.client_sock = client_sock
-            self.buffer = 1024
+            self.com_protocol = CommunicationProtocol(self.client_sock)
         except socket.error as e:
             logging.error(f"Failed to initialize socket: {e}")
             raise
@@ -26,32 +28,48 @@ class Client:
             logging.error(f"Connection refused: {e}")
             raise
         except socket.error as e:
-            logging.error(f"Socket error {e}")
+            logging.error(f"Failed to connect: {e}")
             raise
 
-    def send(self, msg):
+    def send(self, message, data=None, event=None):
+        """
+        Send messages with proper formatting and error handling.
+        Handles business logic for message formatting and error responses.
+        """
         try:
-            message = json.dumps(msg).encode("utf-8")
-            message_len = len(message).to_bytes(4, byteorder="big")
-            self.client_sock.sendall(message_len + message)
-        except json.JSONDecodeError as e:
+            msg = {
+                "status": "success",
+                "message": message,
+                "data": data or {},
+                "event": event or ""
+            }
+            self.com_protocol.send(msg)
+
+        except (json.JSONDecodeError, TypeError) as e:
             logging.error(f"Invalid message format: {e}")
-            raise
+            error_msg = {
+                "status": "error",
+                "message": e,
+                "data": {},
+                "event": ""
+            }
+            self.com_protocol.send(error_msg)
         except ConnectionError as e:
-            logging.error(f"Failed to send message: {e}")
+            logging.error(f"Connection lost: {e}")
             raise
 
     def receive(self):
         msg_parts = []
         bytes_recv = 0
         header = self.client_sock.recv(4)
+        print(int.from_bytes(header, byteorder="big"))
         if not header:
             raise ValueError
         while True:
             try:
                 msg_len = int.from_bytes(header[0:4], byteorder="big")
                 while bytes_recv < msg_len:
-                    msg_part = self.client_sock.recv(min(msg_len - bytes_recv, self.buffer))
+                    msg_part = self.client_sock.recv(min(msg_len - bytes_recv, 1024))
                     if not msg_part:
                         break
                     msg_parts.append(msg_part)
@@ -82,10 +100,7 @@ class Client:
                             self.client_sock.close()
                             break
                         else:
-                            self.send({"status": "success",
-                                       "message": request,
-                                       "data": {},
-                                       "event": ""})
+                            self.send(request)
                     # clr_screen() # turn on in final
                 except ConnectionError as e:
                     logging.error(f"Connection to the host has been lost: {e}")

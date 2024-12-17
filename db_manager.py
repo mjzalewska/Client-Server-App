@@ -135,7 +135,7 @@ class DbManager:
             if key not in data:
                 raise KeyError(f"No record found for {key}")
             return {key: data.get(key)}
-        except (ValueError, KeyError) as e:
+        except ValueError as e:
             logging.error(f"Invalid key type: {e}")
             raise
         except OSError as e:

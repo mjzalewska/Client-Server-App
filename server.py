@@ -3,6 +3,8 @@ import logging
 import socket
 from datetime import datetime, timedelta
 from time import sleep
+
+from communication import CommunicationProtocol
 from user_model import User
 from utilities import load_menu_config
 
@@ -16,14 +18,15 @@ class Server:
             self.server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         else:
             self.server_sock = server_sock
+        self.com_protocol = None
+        self.connection = None
+        self.address = None
         self.version = "1.1.0"
         self.build_date = "2023-12-03"
         self.start_time = datetime.now()
         self.user = None
         self.user_commands = None
         self.admin_commands = None
-        self.connection = None
-        self.address = None
         logging.basicConfig(filename='server.log', level=logging.INFO,
                             format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -33,6 +36,7 @@ class Server:
             s.listen()
             print(f"Listening on {self.host}:{self.port}")
             self.connection, self.address = s.accept()
+            self.com_protocol = CommunicationProtocol(self.connection)
             print(f"Accepted connection from {self.address[0]}:{self.address[1]}")
             self.user_commands = load_menu_config("login_menu", "logged_out", "user")
             self.send({"status": "success",
@@ -41,14 +45,29 @@ class Server:
                        "event": ""
                        })
 
-    def send(self, msg):
+    def send(self, message, data=None, event=None):
+        """
+            Send messages with proper formatting and error handling.
+            Handles business logic for message formatting and error responses.
+        """
         try:
-            message = json.dumps(msg).encode("utf-8")
-            message_len = len(message).to_bytes(4, byteorder="big")
-            self.connection.sendall(message_len + message)
-        except json.decoder.JSONDecodeError:
-            print("Invalid message format")
-            exit()
+            msg = {
+                "status": "success",
+                "message": message,
+                "data": data or {},
+                "event": event or ""
+            }
+            self.com_protocol.send(msg)
+
+        except (json.JSONDecodeError, TypeError) as e:
+            logging.error(f"Invalid message format: {e}")
+            self.com_protocol.send({"status": "error",
+                                    "message": "Invalid message format",
+                                    "data": {},
+                                    "event": ""})
+        except ConnectionError as e:
+            logging.error(f"Connection lost: {e}")
+            raise
 
     def receive(self):
         msg_parts = []
@@ -107,7 +126,7 @@ class Server:
                 self.send({"status": "error",
                            "message": "Incorrect username or password!",
                            "data": {},
-                           "event": "info"})
+                           "event": ""})
                 logging.error(f"Failed login attempt for username: {user_data['username']}")
 
     def log_out(self):
@@ -125,7 +144,7 @@ class Server:
         return uptime_val
 
     def get_users(self, username=None):
-        user_data = User.show(username)
+        user_data = User.get(username)
         self.send({"status": "success",
                    "message": "",
                    "data": (user_data, "tabular"),
@@ -163,10 +182,10 @@ class Server:
                        "event": ""})
 
     def run_manage_users_menu(self):
-        # while True:
+        while True:
             self.admin_commands = load_menu_config("manage_users_menu", "logged_in", "admin")
             self.send({"status": "success",
-                       "message": "User management",
+                       "message": "User management menu",
                        "data": (self.admin_commands, "list"),
                        "event": ""})
             command = self.receive()["message"]
@@ -188,11 +207,8 @@ class Server:
                                        "event": ""})
                             logging.error(f"New user signup failed for username: {user_data['username']}")
                     case "delete":
-                        self.send({"status": "success",
-                                   "message": "Enter username: ",
-                                   "data": {},
-                                   "event": ""})
-                        username = self.receive()["message"]
+                        required_fields = ["username"]
+                        username = self.get_user_input(required_fields)["username"]
                         self.send({"status": "success",
                                    "message": f"Are you sure you want to delete user {username}? Y/N",
                                    "data": {},
@@ -206,11 +222,9 @@ class Server:
                                            "event": "info"})
                             else:
                                 self.send({"status": "error",
-                                           "message": f"User {username} does not exist!", #update error message
+                                           "message": f"User {username} does not exist!",  # update error message
                                            "data": {},
                                            "event": ""})
-                            # continue
-
                     case "show":
                         self.send({"status": "success",
                                    "message": "Enter username: ",
@@ -220,20 +234,30 @@ class Server:
                         self.get_users(username)
                     case "show all":
                         self.get_users()
-                        # continue
+                        continue
                     case "return":
                         self.send({"status": "success",
                                    "message": "",
                                    "data": {},
                                    "event": "return"})
-                        # break
+                        return
+                    case "help":
+                        self.send({"status": "success",
+                                   "message": "User management menu",
+                                   "data": (self.admin_commands, "list"),
+                                   "event": ""})
+                        self.admin_commands = load_menu_config("login_menu", "logged_in", "admin")
+                        self.send({"status": "success",
+                                   "message": "Admin Main Menu",
+                                   "data": (self.admin_commands, "list"),
+                                   "event": ""})
+
             else:
                 self.send({"status": "error",
                            "message": "Unknown request. Choose correct command!",
                            "data": (self.admin_commands, "list"),
                            "event": ""})
                 logging.error(f"Bad request received from {self.address[0]}:{self.address[1]}")
-        # self.display_main_menu()
 
     def run_user_menu(self, command):
         if command.casefold() in self.user_commands.keys():
@@ -331,9 +355,9 @@ if __name__ == "__main__":
     server = Server(65000)
     server.run()
 
-
-# manage users menu - when signup fails returns to menu on seconf attempt, same with return - returns on second attempt
-# jest opóźnienie w obsłudze komend
+# manage users menu:
+# - opóźnienie w przypadku wywoałania komend (od 1 do 3x)
+# - problem z return
 
 
 # sending messages - 5 messages per inbox for regular user, no limit for admin
@@ -341,6 +365,7 @@ if __name__ == "__main__":
 # message len limit - 255 chars
 
 # data validation for email and password len
+# hide chars when typing password?
 # to return error messages (user already exists, error when operation failed, etc.) - user model
 # refactor receive
 # refactor the app to use select

@@ -54,7 +54,7 @@ class UserDAO:
             return DbManager.get(username)[username] is not None
         except KeyError:
             return False
-        except Exception as e:
+        except (Exception, ValueError) as e:
             logging.error(f"Error checking user existence: {e}")
             raise
 
@@ -115,7 +115,7 @@ class UserDAO:
                     "email": user_data.get("email"),
                     "role": user_data.get("role")}
             DbManager.save(username, data)
-        except (ValueError, TypeError,) as e:
+        except (ValueError, TypeError) as e:
             logging.error(f"Failed to save user data: {e}")
             raise
 
@@ -139,6 +139,6 @@ class UserDAO:
             raise ValueError("Username cannot be empty")
         try:
             DbManager.delete(username)
-        except KeyError as e:
+        except (KeyError, TypeError, ValueError) as e:
             logging.error(f"Failed to delete user {e}")
             raise
