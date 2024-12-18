@@ -31,38 +31,26 @@ class Client:
             logging.error(f"Failed to connect: {e}")
             raise
 
-    def send(self, message, data=None, event=None):
+    def send(self, message, status="success", data=None):
         """
         Send messages with proper formatting and error handling.
         Handles business logic for message formatting and error responses.
         """
         try:
-            msg = {
-                "status": "success",
-                "message": message,
-                "data": data or {},
-                "event": event or ""
-            }
-            self.com_protocol.send(msg)
-
-        except (json.JSONDecodeError, TypeError) as e:
-            logging.error(f"Invalid message format: {e}")
-            error_msg = {
-                "status": "error",
-                "message": e,
-                "data": {},
-                "event": ""
-            }
-            self.com_protocol.send(error_msg)
+            message_to_send = self.com_protocol.format_message(message, status=status, data=data)
+            self.com_protocol.send(message_to_send)
         except ConnectionError as e:
             logging.error(f"Connection lost: {e}")
             raise
+        except Exception as e:
+            logging.error(f"Invalid message format: {e}")
+            error_message = self.com_protocol.format_message(str(e), status="error")
+            self.com_protocol.send(error_message)
 
     def receive(self):
         msg_parts = []
         bytes_recv = 0
         header = self.client_sock.recv(4)
-        print(int.from_bytes(header, byteorder="big"))
         if not header:
             raise ValueError
         while True:

@@ -39,35 +39,23 @@ class Server:
             self.com_protocol = CommunicationProtocol(self.connection)
             print(f"Accepted connection from {self.address[0]}:{self.address[1]}")
             self.user_commands = load_menu_config("login_menu", "logged_out", "user")
-            self.send({"status": "success",
-                       "message": f"Successfully connected to: {self.host}",
-                       "data": (self.user_commands, "list"),
-                       "event": ""
-                       })
+            self.send(f"Successfully connected to: {self.host}", (self.user_commands, "list"))
 
-    def send(self, message, data=None, event=None):
+    def send(self, message, data=None, status="success"):
         """
             Send messages with proper formatting and error handling.
             Handles business logic for message formatting and error responses.
         """
         try:
-            msg = {
-                "status": "success",
-                "message": message,
-                "data": data or {},
-                "event": event or ""
-            }
-            self.com_protocol.send(msg)
-
-        except (json.JSONDecodeError, TypeError) as e:
-            logging.error(f"Invalid message format: {e}")
-            self.com_protocol.send({"status": "error",
-                                    "message": "Invalid message format",
-                                    "data": {},
-                                    "event": ""})
+            message_to_send = self.com_protocol.format_message(message, data=data, status=status, )
+            self.com_protocol.send(message_to_send)
         except ConnectionError as e:
             logging.error(f"Connection lost: {e}")
             raise
+        except Exception as e:
+            logging.error(f"Invalid message format: {e}")
+            error_message = self.com_protocol.format_message(str(e), status="error")
+            self.com_protocol.send(error_message)
 
     def receive(self):
         msg_parts = []
@@ -95,20 +83,11 @@ class Server:
             return message
 
     def register(self, required_fields):
-        # while True:
         user_data = self.get_user_input(required_fields)
         if User.register(user_data["username"], user_data["password"], user_data["email"]):
-            self.send({"status": "success",
-                       "message": "Sign up successful!",
-                       "data": (self.user_commands, "list"),
-                       "event": ""})
-            # break
+            self.send("Sign up successful!", (self.user_commands, "list"))
         else:
-            self.send({"status": "error",
-                       "message": "Operation failed!",  # provide reason, throw error after username provided
-                       "data": {},
-                       "event": ""})
-            # continue
+            self.send("Operation failed!", status="error")
 
     def log_in(self):
         while True:
@@ -116,25 +95,16 @@ class Server:
             user_data = self.get_user_input(required_fields)
             self.user = User.log_in(user_data["username"], user_data["password"])
             if self.user is not None:
-                self.send({"status": "success",
-                           "message": "Logged in successfully!",
-                           "data": {},
-                           "event": "info"})
+                self.send("Logged in successfully!")
                 self.run_main_menu()
                 break
             else:
-                self.send({"status": "error",
-                           "message": "Incorrect username or password!",
-                           "data": {},
-                           "event": ""})
+                self.send("Incorrect username or password!", status="error")
                 logging.error(f"Failed login attempt for username: {user_data['username']}")
 
     def log_out(self):
         self.user = None
-        self.send({"status": "success",
-                   "message": "You have been successfully logged out!",
-                   "data": {},
-                   "event": "info"})
+        self.send("You have been successfully logged out!")
         self.run_main_menu()
 
     def calculate_uptime(self):
@@ -145,18 +115,12 @@ class Server:
 
     def get_users(self, username=None):
         user_data = User.get(username)
-        self.send({"status": "success",
-                   "message": "",
-                   "data": (user_data, "tabular"),
-                   "event": ""})
+        self.send("", (user_data, "tabular"))
 
     def get_user_input(self, fields):
         user_data = {}
         for field in fields:
-            self.send({"status": "success",
-                       "message": f"Enter {field}: ",
-                       "data": {},
-                       "event": ""})
+            self.send(f"Enter {field}: ")
             user_data[field] = self.receive()["message"]
         return user_data
 
@@ -164,30 +128,18 @@ class Server:
         """Displays the main menu based on user role."""
         if not self.user:
             self.user_commands = load_menu_config("login_menu", "logged_out", "user")
-            self.send({"status": "success",
-                       "message": "Please log in or register",
-                       "data": (self.user_commands, "list"),
-                       "event": ""})
+            self.send("Please log in or register", (self.user_commands, "list"))
         elif self.user.role == "admin":
             self.admin_commands = load_menu_config("login_menu", "logged_in", "admin")
-            self.send({"status": "success",
-                       "message": "Admin Main Menu",
-                       "data": (self.admin_commands, "list"),
-                       "event": ""})
+            self.send("Admin Main Menu", (self.admin_commands, "list"))
         elif self.user.role == "user":
             self.user_commands = load_menu_config("login_menu", "logged_in", "user")
-            self.send({"status": "success",
-                       "message": "User Main Menu",
-                       "data": (self.user_commands, "list"),
-                       "event": ""})
+            self.send("User Main Menu", (self.user_commands, "list"))
 
     def run_manage_users_menu(self):
         while True:
             self.admin_commands = load_menu_config("manage_users_menu", "logged_in", "admin")
-            self.send({"status": "success",
-                       "message": "User management menu",
-                       "data": (self.admin_commands, "list"),
-                       "event": ""})
+            self.send("User management menu", (self.admin_commands, "list"))
             command = self.receive()["message"]
             if command.casefold() in self.admin_commands.keys():
                 match command.casefold():
@@ -196,67 +148,36 @@ class Server:
                         user_data = self.get_user_input(required_fields)
                         if User.register(user_data["username"], user_data["password"], user_data["email"],
                                          user_data["user role"]):
-                            self.send({"status": "success",
-                                       "message": f"User {user_data['username']} added successfully!",
-                                       "data": {},
-                                       "event": "info"})
+                            self.send(f"User {user_data['username']} added successfully!")
                         else:
-                            self.send({"status": "error",
-                                       "message": "Operation failed!",  ## specify reason for failure
-                                       "data": {},
-                                       "event": ""})
+                            self.send("Operation failed!", status="error")
                             logging.error(f"New user signup failed for username: {user_data['username']}")
                     case "delete":
                         required_fields = ["username"]
                         username = self.get_user_input(required_fields)["username"]
-                        self.send({"status": "success",
-                                   "message": f"Are you sure you want to delete user {username}? Y/N",
-                                   "data": {},
-                                   "event": ""})
+                        self.send(f"Are you sure you want to delete user {username}? Y/N")
                         client_reply = self.receive()["message"]
                         if client_reply.upper() == "Y":
                             if User.delete_account(username):
-                                self.send({"status": "success",
-                                           "message": f"User {username} deleted successfully!",
-                                           "data": {},
-                                           "event": "info"})
+                                self.send(f"User {username} deleted successfully!")
                             else:
-                                self.send({"status": "error",
-                                           "message": f"User {username} does not exist!",  # update error message
-                                           "data": {},
-                                           "event": ""})
+                                self.send(f"User {username} does not exist!", status="error")  # update error message
                     case "show":
-                        self.send({"status": "success",
-                                   "message": "Enter username: ",
-                                   "data": {},
-                                   "event": ""})
+                        self.send("Enter username: ")
                         username = self.receive()["message"]
                         self.get_users(username)
                     case "show all":
                         self.get_users()
                         continue
                     case "return":
-                        self.send({"status": "success",
-                                   "message": "",
-                                   "data": {},
-                                   "event": "return"})
+                        self.send("")  # change
                         return
                     case "help":
-                        self.send({"status": "success",
-                                   "message": "User management menu",
-                                   "data": (self.admin_commands, "list"),
-                                   "event": ""})
+                        self.send("User management menu", (self.admin_commands, "list"))
                         self.admin_commands = load_menu_config("login_menu", "logged_in", "admin")
-                        self.send({"status": "success",
-                                   "message": "Admin Main Menu",
-                                   "data": (self.admin_commands, "list"),
-                                   "event": ""})
-
+                        self.send("Admin Main Menu", (self.admin_commands, "list"))
             else:
-                self.send({"status": "error",
-                           "message": "Unknown request. Choose correct command!",
-                           "data": (self.admin_commands, "list"),
-                           "event": ""})
+                self.send("Unknown request. Choose correct command!", (self.admin_commands, "list"), status="error")
                 logging.error(f"Bad request received from {self.address[0]}:{self.address[1]}")
 
     def run_user_menu(self, command):
@@ -267,40 +188,25 @@ class Server:
                 case "info":
                     self.get_users(self.user.username)
                 case "help":
-                    self.send({"status": "success",
-                               "message": "This server can run the following commands: ",
-                               "data": (self.user_commands, "list"),
-                               "event": ""})
+                    self.send("This server can run the following commands: ", (self.user_commands, "list"))
                 case "sign out":
                     self.log_out()
                 case "disconnect":
                     pass
         else:
-            self.send({"status": "error",
-                       "message": "Unknown request. Choose correct command!",
-                       "data": (self.user_commands, "list"),
-                       "event": ""})
+            self.send("Unknown request. Choose correct command!", (self.user_commands, "list"), status="error")
             logging.error(f"Bad request received from {self.address[0]}:{self.address[1]}")
 
     def run_admin_menu(self, command):
         if command.casefold() in self.admin_commands.keys():
             match command.casefold():
                 case "info":
-                    self.send({"status": "success",
-                               "message": f"version: {self.version}, build: {self.build_date}",
-                               "data": {},
-                               "event": ""})
+                    self.send(f"version: {self.version}, build: {self.build_date}")
                 case "uptime":
                     uptime = self.calculate_uptime()
-                    self.send({"status": "success",
-                               "message": f"server uptime (hh:mm:ss): {uptime}",
-                               "data": {},
-                               "event": ""})
+                    self.send(f"server uptime (hh:mm:ss): {uptime}")
                 case "help":
-                    self.send({"status": "success",
-                               "message": "This server can run the following commands: ",
-                               "data": (self.admin_commands, "list"),
-                               "event": ""})
+                    self.send("This server can run the following commands: ", (self.admin_commands, "list"))
                 case "close":
                     print("Shutting down...")
                     sleep(2)
@@ -313,10 +219,7 @@ class Server:
                 case "sign out":
                     self.log_out()
         else:
-            self.send({"status": "error",
-                       "message": "Unknown request. Choose correct command!",
-                       "data": (self.admin_commands, "list"),
-                       "event": ""})
+            self.send("Unknown request. Choose correct command!", (self.admin_commands, "list"), "error")
             logging.error(f"Bad request received from {self.address[0]}:{self.address[1]}")
 
     def run(self):
@@ -333,10 +236,7 @@ class Server:
                             case "register":
                                 self.register(["username", "password", "email"])
                     else:
-                        self.send({"status": "error",
-                                   "message": "Unknown request. Choose correct command!",
-                                   "data": (self.user_commands, "list"),
-                                   "event": ""})
+                        self.send("Unknown request. Choose correct command!", (self.user_commands, "list"), "error")
                         logging.error(f"Bad request received from {self.address[0]}:{self.address[1]}")
                 else:
                     if self.user.role == "user":
