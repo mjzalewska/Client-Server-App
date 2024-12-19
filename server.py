@@ -58,29 +58,34 @@ class Server:
             self.com_protocol.send(error_message)
 
     def receive(self):
-        msg_parts = []
-        bytes_recv = 0
-        header = self.connection.recv(4)
-        if not header:
-            raise ValueError
-        while True:
-            try:
-                msg_len = int.from_bytes(header[0:4], byteorder="big")
-                while bytes_recv < msg_len:
-                    msg_part = self.connection.recv(min(msg_len - bytes_recv, self.buffer))
-                    if not msg_part:
-                        break
-                    msg_parts.append(msg_part)
-                    bytes_recv += len(msg_part)
-            except ValueError:
-                self.send({"status": "error",
-                           "message": "Invalid message format: missing header!",
-                           "data": {},
-                           "event": ""})
-                exit()
-            data = b"".join(msg_parts)
-            message = json.loads(data.decode("utf-8").strip())
+        """
+        Receive and process a message from a client.
+
+        Returns:
+        Message: The received message object
+
+        Raises:
+        ConnectionError: If the client connection is lost
+        RuntimeError: If there are problems processing the message
+        """
+        try:
+            message = self.com_protocol.receive()
             return message
+
+        except BrokenPipeError as e:
+            logging.error(f"Client {self.address} has closed the connection")
+            self.connection.close()
+            raise ConnectionError("Client disconnected") from e
+
+        except ConnectionResetError as e:
+            logging.error(f"Connection to client {self.address} was forcefully closed")
+            self.connection.close()
+            raise ConnectionError("Client connection lost") from e
+
+        except ValueError as e:
+            logging.error(f"Received invalid message from client {self.address}: {e}")
+            self.send("Invalid message format", status="error")
+            raise RuntimeError(f"Invalid message received from client: {e}") from e
 
     def register(self, required_fields):
         user_data = self.get_user_input(required_fields)
@@ -246,9 +251,18 @@ class Server:
             except ConnectionError:
                 print("Connection has been lost!")
                 exit()
-            except Exception as e:
-                print(e)
-                exit()
+
+            except RuntimeError as e:
+                logging.error(f"Error processing message from {self.address}: {e}")
+                try:
+                    self.send("An error occurred processing your request. Please try again.", status="error")
+                    if not self.user or not self.user.is_logged_in:
+                        self.send("Available commands:",(self.user_commands, "list"))
+                except ConnectionError:
+                    logging.error(f"Could not send error message to client {self.address}")
+                    break
+        self.connection.close()
+        logging.info(f"Closed connection to {self.address}")
 
 
 if __name__ == "__main__":

@@ -48,29 +48,33 @@ class Client:
             self.com_protocol.send(error_message)
 
     def receive(self):
-        msg_parts = []
-        bytes_recv = 0
-        header = self.client_sock.recv(4)
-        if not header:
-            raise ValueError
-        while True:
-            try:
-                msg_len = int.from_bytes(header[0:4], byteorder="big")
-                while bytes_recv < msg_len:
-                    msg_part = self.client_sock.recv(min(msg_len - bytes_recv, 1024))
-                    if not msg_part:
-                        break
-                    msg_parts.append(msg_part)
-                    bytes_recv += len(msg_part)
-            except ValueError:
-                self.send({"status": "error",
-                           "message": "Invalid message format: missing header!",
-                           "data": {},
-                           "event": ""})
-                exit()
-            data = b"".join(msg_parts)
-            message = json.loads(data.decode("utf-8").strip())
+        """
+        Receive and process a message from the server.
+
+        Returns:
+            Message: The received message object
+
+        Raises:
+            ConnectionError: If the connection to the server is lost
+            RuntimeError: If there are problems processing the message
+        """
+        try:
+            message = self.com_protocol.receive()
             return message
+
+        except BrokenPipeError as e:
+            logging.error("Server has closed the connection")
+            self.client_sock.close()
+            raise ConnectionError("Server connection closed") from e
+
+        except ConnectionResetError as e:
+            logging.error("Connection to server was forcefully closed")
+            self.client_sock.close()
+            raise ConnectionError("Lost connection to server") from e
+
+        except ValueError as e:
+            logging.error(f"Received invalid message format: {e}")
+            raise RuntimeError(f"Invalid message received from server: {e}") from e
 
     def run(self):
         try:
@@ -90,6 +94,10 @@ class Client:
                         else:
                             self.send(request)
                     # clr_screen() # turn on in final
+                except RuntimeError as e:
+                    print(f"Error: {e}")
+                    logging.error(f"Error processing server response: {e}")
+                    continue
                 except ConnectionError as e:
                     logging.error(f"Connection to the host has been lost: {e}")
                     raise
@@ -101,6 +109,7 @@ class Client:
                     raise
         finally:
             self.client_sock.close()
+            logging.info("Client shutdown complete")
 
 
 if __name__ == "__main__":

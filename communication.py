@@ -52,11 +52,35 @@ class CommunicationProtocol:
 
     def receive(self):
         """
-        Send a message following the application's protocol.
-        Args:
-            msg: Dictionary containing status, message, data, and event fields
+        Receives a complete message from the socket.
+        The protocol expects:
+        1. A 4-byte header containing message length
+        2. The message body as JSON-encoded data
+
+        Returns:
+            Message: The received message
 
         Raises:
-            json.JSONDecodeError: If message cannot be encoded
-            ConnectionError: If sending fails
+            BrokenPipeError: If peer closes connection
+            ValueError: If message format is invalid
+            ConnectionError: If connection is lost during transfer
+            json.JSONDecodeError: If received data is not valid JSON
         """
+        try:
+            header = self.sock.recv(4)
+            if not header:
+                raise BrokenPipeError("Connection closed by peer")
+            msg_len = int.from_bytes(header, byteorder="big")
+            if msg_len <= 0:
+                raise ValueError(f"Invalid message length: {msg_len}")
+            data = bytearray()
+            remaining = msg_len
+            while remaining > 0:
+                chunk = self.sock.recv(min(remaining, self.buffer_size))
+                data.extend(chunk)
+                remaining -= len(chunk)
+            message = json.loads(data.decode("utf-8"))
+            return message
+        except (BrokenPipeError, ValueError, ConnectionError, json.JSONDecodeError) as e:
+            logging.error(f"Error receiving message: {e}")
+            raise
