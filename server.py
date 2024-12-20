@@ -6,7 +6,7 @@ from time import sleep
 
 from communication import CommunicationProtocol
 from user_model import User
-from utilities import load_menu_config
+from utilities import load_menu_config, get_user_input, calculate_uptime, format_server_info
 
 
 class Server:
@@ -115,7 +115,7 @@ class Server:
             raise RuntimeError(f"Invalid message received from client: {e}") from e
 
     def register(self, required_fields):
-        user_data = self.get_user_input(required_fields)
+        user_data = get_user_input(required_fields)
         if User.register(user_data["username"], user_data["password"], user_data["email"]):
             self.send("Sign up successful!", (self.user_commands, "list"))
         else:
@@ -124,7 +124,7 @@ class Server:
     def log_in(self):
         while True:
             required_fields = ["username", "password"]
-            user_data = self.get_user_input(required_fields)
+            user_data = get_user_input(required_fields)
             self.user = User.log_in(user_data["username"], user_data["password"])
             if self.user is not None:
                 self.send("Logged in successfully!")
@@ -139,22 +139,9 @@ class Server:
         self.send("You have been successfully logged out!")
         self.run_main_menu()
 
-    def calculate_uptime(self):
-        request_time = datetime.now()
-        time_diff = (request_time - self.start_time).seconds
-        uptime_val = str(timedelta(seconds=time_diff))
-        return uptime_val
-
     def get_users(self, username=None):
         user_data = User.get(username)
         self.send("", (user_data, "tabular"))
-
-    def get_user_input(self, fields):
-        user_data = {}
-        for field in fields:
-            self.send(f"Enter {field}: ")
-            user_data[field] = self.receive()["message"]
-        return user_data
 
     def run_main_menu(self):
         """Displays the main menu based on user role."""
@@ -177,7 +164,7 @@ class Server:
                 match command.casefold():
                     case "add":
                         required_fields = ["username", "password", "email", "user role"]
-                        user_data = self.get_user_input(required_fields)
+                        user_data = get_user_input(required_fields)
                         if User.register(user_data["username"], user_data["password"], user_data["email"],
                                          user_data["user role"]):
                             self.send(f"User {user_data['username']} added successfully!")
@@ -186,7 +173,7 @@ class Server:
                             logging.error(f"New user signup failed for username: {user_data['username']}")
                     case "delete":
                         required_fields = ["username"]
-                        username = self.get_user_input(required_fields)["username"]
+                        username = get_user_input(required_fields)["username"]
                         self.send(f"Are you sure you want to delete user {username}? Y/N")
                         client_reply = self.receive()["message"]
                         if client_reply.upper() == "Y":
@@ -235,7 +222,7 @@ class Server:
                 case "info":
                     self.send(f"version: {self.version}, build: {self.build_date}")
                 case "uptime":
-                    uptime = self.calculate_uptime()
+                    uptime = calculate_uptime(self.start_time)
                     self.send(f"server uptime (hh:mm:ss): {uptime}")
                 case "help":
                     self.send("This server can run the following commands: ", (self.admin_commands, "list"))
