@@ -14,13 +14,17 @@ class Server:
         self.host = "127.0.0.1"
         self.port = port
         self.buffer = 1024
-        if server_sock is None:
-            self.server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        else:
-            self.server_sock = server_sock
-        self.com_protocol = None
+        try:
+            if server_sock is None:
+                self.server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            else:
+                self.server_sock = server_sock
+        except socket.error as e:
+            logging.error(f"Failed to create server socket: {e}")
+            raise
         self.connection = None
         self.address = None
+        self.com_protocol = None
         self.version = "1.1.0"
         self.build_date = "2023-12-03"
         self.start_time = datetime.now()
@@ -31,15 +35,38 @@ class Server:
                             format='%(asctime)s - %(levelname)s - %(message)s')
 
     def start_server(self):
-        with self.server_sock as s:
-            s.bind((self.host, self.port))
-            s.listen()
-            print(f"Listening on {self.host}:{self.port}")
-            self.connection, self.address = s.accept()
-            self.com_protocol = CommunicationProtocol(self.connection)
-            print(f"Accepted connection from {self.address[0]}:{self.address[1]}")
-            self.user_commands = load_menu_config("login_menu", "logged_out", "user")
-            self.send(f"Successfully connected to: {self.host}", (self.user_commands, "list"))
+        """
+        Start the server and handle a single client connection.
+
+        This method:
+            1. Binds and starts listening on the specified port
+            2. Accepts a single client connection
+            3. Sets up the communication protocol
+            4. Sends the initial welcome message and available commands
+
+        Raises:
+            OSError: If binding or listening fails
+            ConnectionError: If accepting the connection fails
+        """
+        try:
+            with self.server_sock as s_sock:
+                s_sock.bind((self.host, self.port))
+                s_sock.listen()
+                print(f"Listening on {self.host}:{self.port}")
+                self.connection, self.address = s_sock.accept()
+                with self.connection as conn:
+                    print(f"Accepted connection from {self.address[0]}:{self.address[1]}")
+                    self.com_protocol = CommunicationProtocol(conn)
+                    self.user_commands = load_menu_config("login_menu", "logged_out", "user")
+                    welcome_message = f"Connected to server at {self.host}"
+                    self.send(welcome_message, (self.user_commands, "list"))
+
+        except OSError as e:
+            logging.error(f"Server failed to start: {e}")
+            raise
+        except Exception as e:
+            logging.error(f"An error occurred during server startup: {e}")
+            raise
 
     def send(self, message, data=None, status="success"):
         """
@@ -175,12 +202,12 @@ class Server:
                         self.get_users()
                         continue
                     case "return":
-                        self.send("")  # change
+                        self.admin_commands = load_menu_config("login_menu", "logged_in", "admin")
+                        self.send("Admin Main Menu", (self.admin_commands, "list"))
                         return
                     case "help":
                         self.send("User management menu", (self.admin_commands, "list"))
-                        self.admin_commands = load_menu_config("login_menu", "logged_in", "admin")
-                        self.send("Admin Main Menu", (self.admin_commands, "list"))
+
             else:
                 self.send("Unknown request. Choose correct command!", (self.admin_commands, "list"), status="error")
                 logging.error(f"Bad request received from {self.address[0]}:{self.address[1]}")
@@ -257,7 +284,7 @@ class Server:
                 try:
                     self.send("An error occurred processing your request. Please try again.", status="error")
                     if not self.user or not self.user.is_logged_in:
-                        self.send("Available commands:",(self.user_commands, "list"))
+                        self.send("Available commands:", (self.user_commands, "list"))
                 except ConnectionError:
                     logging.error(f"Could not send error message to client {self.address}")
                     break
@@ -281,5 +308,4 @@ if __name__ == "__main__":
 # data validation for email and password len
 # hide chars when typing password?
 # to return error messages (user already exists, error when operation failed, etc.) - user model
-# refactor receive
 # refactor the app to use select
