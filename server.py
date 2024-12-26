@@ -40,7 +40,7 @@ class Server:
 
         This method:
             1. Binds and starts listening on the specified port
-            2. Accepts a single client connection
+            2. Accepts  client connection
             3. Sets up the communication protocol
             4. Sends the initial welcome message and available commands
 
@@ -69,7 +69,7 @@ class Server:
             raise
 
     def cleanup(self):
-        """Clean up resources after connection has been closed"""
+        """Cleans up resources after connection has been closed"""
         if self.connection:
             try:
                 self.connection.close()
@@ -127,12 +127,21 @@ class Server:
             self.send("Invalid message format", status="error")
             raise RuntimeError(f"Invalid message received from client: {e}") from e
 
-    def add_account(self, required_fields):
-        user_data = get_user_input(required_fields)
-        if User.register(user_data["username"], user_data["password"], user_data["email"]):
-            self.send("Sign up successful!", (self.user_commands, "list"))
-        else:
-            self.send("Operation failed!", status="error")
+    def _process_registration(self, required_fields):
+        """Process new user registration"""
+        try:
+            user_data = get_user_input(self, required_fields)
+            if User.register(username=user_data["username"], password=user_data["password"], email=user_data["email"]):
+                self.send("Registration successful!", (self.user_commands, "list"))
+        except ValueError as e:
+            self.send(f"Registration failed: {e}", status="error")
+            logging.info(f"Registration failed - validation error: {e}")
+        except TypeError as e:
+            self.send(f"Invalid input format!", status="error")
+            logging.info(f"Registration failed - invalid input: {e}")
+        except OSError as e:
+            self.send(f"Registration failed. Please try again later!", status="error")
+            logging.info(f"Registration failed due to the following error: {e}")
 
     def delete_account(self, username):
         self.send(f"Are you sure you want to delete user {username}? Y/N")
@@ -158,16 +167,7 @@ class Server:
                 logging.error(f"Registration failed due to system error: {e}")
                 self.send("Incorrect input!", status="error")
 
-            # self.user = User.log_in(user_data["username"], user_data["password"])
-            # if self.user is not None:
-            #     self.send("Logged in successfully!")
-            #     self.run_main_menu()
-            #     break
-            # else:
-            #     self.send("Incorrect username or password!", status="error")
-            #     logging.error(f"Failed login attempt for username: {user_data['username']}")
-
-    def log_out(self):
+    def _process_logout(self):
         self.user = None
         self.send("You have been successfully logged out!")
         self.run_main_menu()
@@ -197,7 +197,7 @@ class Server:
                 match command.casefold():
                     case "add":
                         required_fields = ["username", "password", "email", "user role"]
-                        user_data = get_user_input(required_fields)
+                        user_data = get_user_input(self, required_fields)
                         if User.register(user_data["username"], user_data["password"], user_data["email"],
                                          user_data["user role"]):
                             self.send(f"User {user_data['username']} added successfully!")
@@ -206,7 +206,7 @@ class Server:
                             logging.error(f"New user signup failed for username: {user_data['username']}")
                     case "delete":
                         required_fields = ["username"]
-                        username = get_user_input(required_fields)["username"]
+                        username = get_user_input(self, required_fields)["username"]
                         self.delete_account(username)
                     case "show":
                         self.send("Enter username: ")
@@ -236,7 +236,7 @@ class Server:
                 case "help":
                     self.send("This server can run the following commands: ", (self.user_commands, "list"))
                 case "sign out":
-                    self.log_out()
+                    self._process_logout()
                 case "disconnect":
                     pass
         else:
@@ -263,7 +263,7 @@ class Server:
                 case "inbox":
                     pass
                 case "sign out":
-                    self.log_out()
+                    self._process_logout()
         else:
             self.send("Unknown request. Choose correct command!", (self.admin_commands, "list"), "error")
             logging.error(f"Bad request received from {self.address[0]}:{self.address[1]}")
@@ -281,7 +281,7 @@ class Server:
                                 case "log in":
                                     self._process_login()
                                 case "register":
-                                    self.add_account(["username", "password", "email"])
+                                    self._process_registration(["username", "password", "email"])
                         else:
                             self.send("Unknown request. Choose correct command!", (self.user_commands, "list"), "error")
                             logging.error(f"Bad request received from {self.address[0]}:{self.address[1]}")
