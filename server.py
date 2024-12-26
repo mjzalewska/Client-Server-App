@@ -143,16 +143,28 @@ class Server:
             self.send(f"Registration failed. Please try again later!", status="error")
             logging.info(f"Registration failed due to the following error: {e}")
 
-    def delete_account(self, username):
-        self.send(f"Are you sure you want to delete user {username}? Y/N")
-        client_reply = self.receive()["message"]
-        if client_reply.upper() == "Y":
-            if User.delete_account(username):
-                self.send(f"User {username} deleted successfully!")
-            else:
-                self.send(f"User {username} does not exist!", status="error")
+    def _process_account_deletion(self, username):
+        """Process user account removal"""
+        try:
+            self.send(f"Are you sure you want to delete user {username}? Y/N")
+            if self.receive()["message"].upper() == "Y":
+                if User.delete_account(username):
+                    self.send(f"User {username} deleted successfully!")
+            self.send("Operation has been cancelled!")
+            return
+
+        except KeyError:
+            self.send(f"Operation failed - user not found!", status="error")
+            logging.info(f"Account removal failed - user {username} not found")
+        except ValueError as e:
+            self.send(f"Operation failed - invalid username format!", status="error")
+            logging.info(f"Account deletion failed - invalid input: {e}")
+        except OSError as e:
+            self.send(f"Operation failed! Please try again later", status="error")
+            logging.info(f"Account removal failed due to the following error: {e}")
 
     def _process_login(self):
+        """Process user login"""
         while True:
             try:
                 user_credentials = get_user_input(self, ["username", "password"])
@@ -207,7 +219,7 @@ class Server:
                     case "delete":
                         required_fields = ["username"]
                         username = get_user_input(self, required_fields)["username"]
-                        self.delete_account(username)
+                        self._process_account_deletion(username)
                     case "show":
                         self.send("Enter username: ")
                         username = self.receive()["message"]
