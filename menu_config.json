@@ -21,12 +21,12 @@
       },
       "admin": {
         "close": "stop server and client",
-        "help": "display available commands",
         "inbox": "go to inbox",
         "info": "display server version and build date",
         "sign out": "log out",
         "uptime": "display server uptime",
-        "users": "manage users"
+        "users": "manage users",
+        "help": "display available commands"
       }
     }
   },
@@ -37,6 +37,7 @@
         "delete": "remove account",
         "show": "show selected user record",
         "show all": "show all users",
+        "help": "display available commands",
         "return": "return to previous screen "
       }
     }
