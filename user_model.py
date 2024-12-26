@@ -93,7 +93,7 @@ class User:
             raise
 
     @classmethod
-    def delete_account(cls, username):
+    def delete(cls, username):
         """
         Remove user account.
 

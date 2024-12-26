@@ -148,7 +148,7 @@ class Server:
         try:
             self.send(f"Are you sure you want to delete user {username}? Y/N")
             if self.receive()["message"].upper() == "Y":
-                if User.delete_account(username):
+                if User.delete(username):
                     self.send(f"User {username} deleted successfully!")
             self.send("Operation has been cancelled!")
             return
@@ -184,9 +184,20 @@ class Server:
         self.send("You have been successfully logged out!")
         self.run_main_menu()
 
-    def get_users(self, username=None):
-        user_data = User.get(username)
-        self.send("", (user_data, "tabular"))
+    def _get_user_data(self, username=None):
+        """Retrieve user information"""
+        try:
+            user_data = User.get(username)
+            self.send("", (user_data, "tabular"))
+        except KeyError as e:
+            self.send(f"User {username} not found!", status="error")
+            logging.info(f"Failed to retrieve user data - user not found: {e}")
+        except ValueError as e:
+            self.send(f"Invalid username format!", status="error")
+            logging.info(f"Failed to retrieve user data - invalid data format: {e}")
+        except OSError as e:
+            self.send(f"Operation failed! Please try again later", status="error")
+            logging.info(f"Failed to retrieve user data due to the following error: {e}")
 
     def run_main_menu(self):
         """Displays the main menu based on user role."""
@@ -223,9 +234,9 @@ class Server:
                     case "show":
                         self.send("Enter username: ")
                         username = self.receive()["message"]
-                        self.get_users(username)
+                        self._get_user_data(username)
                     case "show all":
-                        self.get_users()
+                        self._get_user_data()
                         continue
                     case "return":
                         self.admin_commands = load_menu_config("login_menu", "logged_in", "admin")
@@ -244,7 +255,7 @@ class Server:
                 case "inbox":
                     print("This is your inbox")
                 case "info":
-                    self.get_users(self.user.username)
+                    self._get_user_data(self.user.username)
                 case "help":
                     self.send("This server can run the following commands: ", (self.user_commands, "list"))
                 case "sign out":
