@@ -11,12 +11,12 @@ def clr_screen():
         _ = system('clear')
 
 
-def get_user_input(self, fields):
+def get_user_input(comm_handler, fields):
     """Generic function to get user input for specified fields"""
     user_data = {}
     for field in fields:
-        self.send(f"Enter {field}: ")
-        user_data[field] = self.receive()["message"]
+        comm_handler.send(f"Enter {field}: ")
+        user_data[field] = comm_handler.receive()["message"]
     return user_data
 
 

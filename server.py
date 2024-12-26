@@ -49,17 +49,17 @@ class Server:
             ConnectionError: If accepting the connection fails
         """
         try:
-            with self.server_sock as s_sock:
-                s_sock.bind((self.host, self.port))
-                s_sock.listen()
-                print(f"Listening on {self.host}:{self.port}")
-                self.connection, self.address = s_sock.accept()
-                with self.connection as conn:
-                    print(f"Accepted connection from {self.address[0]}:{self.address[1]}")
-                    self.com_protocol = CommunicationProtocol(conn)
-                    self.user_commands = load_menu_config("login_menu", "logged_out", "user")
-                    welcome_message = f"Connected to server at {self.host}"
-                    self.send(welcome_message, (self.user_commands, "list"))
+            self.server_sock.bind((self.host, self.port))
+            self.server_sock.listen()
+            print(f"Listening on {self.host}:{self.port}")
+            self.connection, self.address = self.server_sock.accept()
+            logging.info(f"Accepted connection from {self.address[0]}:{self.address[1]}")
+            print(f"Accepted connection from {self.address[0]}:{self.address[1]}")
+
+            self.com_protocol = CommunicationProtocol(self.connection)
+            self.user_commands = load_menu_config("login_menu", "logged_out", "user")
+            welcome_message = f"Connected to server at {self.host}"
+            self.send(welcome_message, (self.user_commands, "list"))
 
         except OSError as e:
             logging.error(f"Server failed to start: {e}")
@@ -67,6 +67,19 @@ class Server:
         except Exception as e:
             logging.error(f"An error occurred during server startup: {e}")
             raise
+
+    def cleanup(self):
+        """Clean up resources after connection has been closed"""
+        if self.connection:
+            try:
+                self.connection.close()
+            except Exception as e:
+                logging.error(f"Error closing connection: {e}")
+        if self.server_sock:
+            try:
+                self.server_sock.close()
+            except Exception as e:
+                logging.error(f"Error closing server socket: {e}")
 
     def send(self, message, data=None, status="success"):
         """
@@ -114,25 +127,45 @@ class Server:
             self.send("Invalid message format", status="error")
             raise RuntimeError(f"Invalid message received from client: {e}") from e
 
-    def register(self, required_fields):
+    def add_account(self, required_fields):
         user_data = get_user_input(required_fields)
         if User.register(user_data["username"], user_data["password"], user_data["email"]):
             self.send("Sign up successful!", (self.user_commands, "list"))
         else:
             self.send("Operation failed!", status="error")
 
-    def log_in(self):
+    def delete_account(self, username):
+        self.send(f"Are you sure you want to delete user {username}? Y/N")
+        client_reply = self.receive()["message"]
+        if client_reply.upper() == "Y":
+            if User.delete_account(username):
+                self.send(f"User {username} deleted successfully!")
+            else:
+                self.send(f"User {username} does not exist!", status="error")
+
+    def _process_login(self):
         while True:
-            required_fields = ["username", "password"]
-            user_data = get_user_input(required_fields)
-            self.user = User.log_in(user_data["username"], user_data["password"])
-            if self.user is not None:
-                self.send("Logged in successfully!")
+            try:
+                user_credentials = get_user_input(self, ["username", "password"])
+                self.user = User.log_in(user_credentials["username"], user_credentials["password"])
+                self.send("Logged in successfully")
                 self.run_main_menu()
                 break
-            else:
+            except (KeyError, ValueError) as e:
+                logging.info(f"Login failed: {e}")
                 self.send("Incorrect username or password!", status="error")
-                logging.error(f"Failed login attempt for username: {user_data['username']}")
+            except (TypeError, AttributeError) as e:
+                logging.error(f"Registration failed due to system error: {e}")
+                self.send("Incorrect input!", status="error")
+
+            # self.user = User.log_in(user_data["username"], user_data["password"])
+            # if self.user is not None:
+            #     self.send("Logged in successfully!")
+            #     self.run_main_menu()
+            #     break
+            # else:
+            #     self.send("Incorrect username or password!", status="error")
+            #     logging.error(f"Failed login attempt for username: {user_data['username']}")
 
     def log_out(self):
         self.user = None
@@ -174,13 +207,7 @@ class Server:
                     case "delete":
                         required_fields = ["username"]
                         username = get_user_input(required_fields)["username"]
-                        self.send(f"Are you sure you want to delete user {username}? Y/N")
-                        client_reply = self.receive()["message"]
-                        if client_reply.upper() == "Y":
-                            if User.delete_account(username):
-                                self.send(f"User {username} deleted successfully!")
-                            else:
-                                self.send(f"User {username} does not exist!", status="error")  # update error message
+                        self.delete_account(username)
                     case "show":
                         self.send("Enter username: ")
                         username = self.receive()["message"]
@@ -242,45 +269,47 @@ class Server:
             logging.error(f"Bad request received from {self.address[0]}:{self.address[1]}")
 
     def run(self):
-        self.start_server()
-        while True:
-            try:
-                client_msg = self.receive()["message"]
-                if not self.user or not self.user.is_logged_in:
-                    self.user_commands = load_menu_config("login_menu", "logged_out", "user")
-                    if client_msg in self.user_commands.keys():
-                        match client_msg:
-                            case "log in":
-                                self.log_in()
-                            case "register":
-                                self.register(["username", "password", "email"])
-                    else:
-                        self.send("Unknown request. Choose correct command!", (self.user_commands, "list"), "error")
-                        logging.error(f"Bad request received from {self.address[0]}:{self.address[1]}")
-                else:
-                    if self.user.role == "user":
-                        self.run_user_menu(client_msg)
-                    elif self.user.role == "admin":
-                        self.run_admin_menu(client_msg)
-            except ConnectionError:
-                print("Connection has been lost!")
-                exit()
-
-            except RuntimeError as e:
-                logging.error(f"Error processing message from {self.address}: {e}")
+        try:
+            self.start_server()
+            while True:
                 try:
-                    self.send("An error occurred processing your request. Please try again.", status="error")
+                    client_msg = self.receive()["message"]
                     if not self.user or not self.user.is_logged_in:
-                        self.send("Available commands:", (self.user_commands, "list"))
+                        self.user_commands = load_menu_config("login_menu", "logged_out", "user")
+                        if client_msg in self.user_commands.keys():
+                            match client_msg:
+                                case "log in":
+                                    self._process_login()
+                                case "register":
+                                    self.add_account(["username", "password", "email"])
+                        else:
+                            self.send("Unknown request. Choose correct command!", (self.user_commands, "list"), "error")
+                            logging.error(f"Bad request received from {self.address[0]}:{self.address[1]}")
+                    else:
+                        if self.user.role == "user":
+                            self.run_user_menu(client_msg)
+                        elif self.user.role == "admin":
+                            self.run_admin_menu(client_msg)
                 except ConnectionError:
-                    logging.error(f"Could not send error message to client {self.address}")
-                    break
-        self.connection.close()
-        logging.info(f"Closed connection to {self.address}")
+                    print("Connection has been lost!")
+                    exit()
+
+                except RuntimeError as e:
+                    logging.error(f"Error processing message from {self.address}: {e}")
+                    try:
+                        self.send("An error occurred processing your request. Please try again.", status="error")
+                        if not self.user or not self.user.is_logged_in:
+                            self.send("Available commands:", (self.user_commands, "list"))
+                    except ConnectionError:
+                        logging.error(f"Could not send error message to client {self.address}")
+                        break
+        finally:
+            self.cleanup()
+            logging.info("Server shutdown complete")
 
 
 if __name__ == "__main__":
-    server = Server(65000)
+    server = Server(55555)
     server.run()
 
 # manage users menu:
