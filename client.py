@@ -31,7 +31,7 @@ class Client:
             logging.error(f"Failed to connect: {e}")
             raise
 
-    def send(self, message, status="success", data=None):
+    def _send(self, message, status="success", data=None):
         """
         Send messages with proper formatting and error handling.
         Handles business logic for message formatting and error responses.
@@ -47,7 +47,7 @@ class Client:
             error_message = self.com_protocol.format_message(str(e), status="error")
             self.com_protocol.send(error_message)
 
-    def receive(self):
+    def _receive(self):
         """
         Receive and process a message from the server.
 
@@ -81,7 +81,7 @@ class Client:
             self.connect()
             while True:
                 try:
-                    server_response = self.receive()
+                    server_response = self._receive()
                     Display.display_message(server_response)
                     if server_response.get("event") == "info":
                         continue
@@ -92,7 +92,7 @@ class Client:
                             self.client_sock.close()
                             break
                         else:
-                            self.send(request)
+                            self._send(request)
                     # clr_screen() # turn on in final
                 except RuntimeError as e:
                     print(f"Error: {e}")
