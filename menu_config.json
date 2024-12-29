@@ -1,5 +1,5 @@
 {
-  "login_menu": {
+  "menu": {
     "logged_out": {
       "user": {
         "log in": "log in to an existing account",
