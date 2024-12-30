@@ -1,7 +1,7 @@
 import logging
 from time import sleep
 
-from utilities import load_menu_config, format_server_info, calculate_uptime
+from utilities import load_menu_config, format_server_info, calculate_uptime, get_user_input
 
 
 class Menu:
@@ -143,6 +143,11 @@ class Menu:
         """Switch to user management menu"""
         self.current_commands = load_menu_config("manage_users_menu","logged_in","admin")
         self.server.send("User management menu", (self.current_commands, "list"))
+
+    def _handle_user_deletion(self):
+        """Handle user account deletion"""
+        username = get_user_input(self.server, ["username"])["username"]
+        self.server.process_account_deletion(username)
 
     def _handle_return(self):
         """Return to the main Admin menu"""
