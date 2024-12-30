@@ -127,7 +127,7 @@ class Server:
             self.send("Invalid message format", status="error")
             raise RuntimeError(f"Invalid message received from client: {e}") from e
 
-    def _process_registration(self, required_fields):
+    def process_registration(self, required_fields):
         """Process new user registration"""
         try:
             user_data = get_user_input(self, required_fields)
@@ -143,7 +143,7 @@ class Server:
             self.send(f"Registration failed. Please try again later!", status="error")
             logging.info(f"Registration failed due to the following error: {e}")
 
-    def _process_account_deletion(self, username):
+    def process_account_deletion(self, username):
         """Process user account removal"""
         try:
             self.send(f"Are you sure you want to delete user {username}? Y/N")
@@ -163,7 +163,7 @@ class Server:
             self.send(f"Operation failed! Please try again later", status="error")
             logging.info(f"Account removal failed due to the following error: {e}")
 
-    def _process_login(self):
+    def process_login(self):
         """Process user login"""
         while True:
             try:
@@ -179,12 +179,12 @@ class Server:
                 logging.error(f"Login failed due to system error: {e}")
                 self.send("Incorrect input!", status="error")
 
-    def _process_logout(self):
+    def process_logout(self):
         self.user = None
         self.send("You have been successfully logged out!")
         self.run_main_menu()
 
-    def _get_user_data(self, username=None):
+    def get_user_data(self, username=None):
         """Retrieve user information"""
         try:
             user_data = User.get(username)
@@ -230,13 +230,13 @@ class Server:
                     case "delete":
                         required_fields = ["username"]
                         username = get_user_input(self, required_fields)["username"]
-                        self._process_account_deletion(username)
+                        self.process_account_deletion(username)
                     case "show":
                         self.send("Enter username: ")
                         username = self.receive()["message"]
-                        self._get_user_data(username)
+                        self.get_user_data(username)
                     case "show all":
-                        self._get_user_data()
+                        self.get_user_data()
                         continue
                     case "return":
                         self.admin_commands = load_menu_config("login_menu", "logged_in", "admin")
@@ -255,11 +255,11 @@ class Server:
                 case "inbox":
                     print("This is your inbox")
                 case "info":
-                    self._get_user_data(self.user.username)
+                    self.get_user_data(self.user.username)
                 case "help":
                     self.send("This server can run the following commands: ", (self.user_commands, "list"))
                 case "sign out":
-                    self._process_logout()
+                    self.process_logout()
                 case "disconnect":
                     pass
         else:
@@ -286,7 +286,7 @@ class Server:
                 case "inbox":
                     pass
                 case "sign out":
-                    self._process_logout()
+                    self.process_logout()
         else:
             self.send("Unknown request. Choose correct command!", (self.admin_commands, "list"), "error")
             logging.error(f"Bad request received from {self.address[0]}:{self.address[1]}")
@@ -302,9 +302,9 @@ class Server:
                         if client_msg in self.user_commands.keys():
                             match client_msg:
                                 case "log in":
-                                    self._process_login()
+                                    self.process_login()
                                 case "register":
-                                    self._process_registration(["username", "password", "email"])
+                                    self.process_registration(["username", "password", "email"])
                         else:
                             self.send("Unknown request. Choose correct command!", (self.user_commands, "list"), "error")
                             logging.error(f"Bad request received from {self.address[0]}:{self.address[1]}")
@@ -313,10 +313,12 @@ class Server:
                             self.run_user_menu(client_msg)
                         elif self.user.role == "admin":
                             self.run_admin_menu(client_msg)
+                except ConnectionAbortedError:
+                    print("Client disconnected. Waiting for new connection...")
+                    break
                 except ConnectionError:
                     print("Connection has been lost!")
                     exit()
-
                 except RuntimeError as e:
                     logging.error(f"Error processing message from {self.address}: {e}")
                     try:

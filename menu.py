@@ -1,5 +1,7 @@
 import logging
-from utilities import load_menu_config
+from time import sleep
+
+from utilities import load_menu_config, format_server_info, calculate_uptime
 
 
 class Menu:
@@ -15,7 +17,7 @@ class Menu:
         self.logged_out_commands = {
             "log in": self._handle_login,
             "register": self._handle_registration,
-            "exit": self._handle_exit
+            "exit": self._handle_client_exit
         }
 
         self.user_commands = {
@@ -23,7 +25,7 @@ class Menu:
             "info": self._handle_user_info,
             "help": self._handle_help,
             "log out": self._handle_logout,
-            "exit": self._handle_exit
+            "exit": self._handle_client_exit
         }
 
         self.admin_commands = {
@@ -32,7 +34,7 @@ class Menu:
             "uptime": self._handle_uptime_display,
             "users": self._handle_users_management,
             "help": self._handle_help,
-            "log out": self._handle_log_out,
+            "log out": self._handle_logout,
             "exit": self._handle_server_shutdown
         }
 
@@ -71,7 +73,7 @@ class Menu:
 
     def _enter_user_management_menu(self):
         """Switch to user management menu state"""
-        self.current_commands = load_menu_config( "manage_users_menu","logged_in","admin")
+        self.current_commands = load_menu_config("manage_users_menu", "logged_in", "admin")
         self.server.send("User management menu", (self.current_commands, "list"))
 
     def _is_valid_command(self, command):
@@ -106,5 +108,53 @@ class Menu:
             logging.error(f"Error executing command '{command}': {e}")
             self.server.send("An error occurred. Please try again.", status="error")
 
+    def _handle_login(self):
+        self.server.process_login()
+        self.update_menu_state()
+
+    def _handle_registration(self):
+        self.server.process_registration(["username", "password", "email"])
+        self.update_menu_state()
+
+    def _handle_logout(self):
+        self.server.process_logout()
+        self.update_menu_state()
+
+    # def _handle_user_info(self):
+    #     pass
+
+    def _handle_client_exit(self):
+        """Handle client exit request"""
+        self.server.send("Goodbye!")
+        self.server.connection.close()
+        raise ConnectionAbortedError("Client requested to exit")
+
+    def _handle_inbox(self):
+        pass
+
+    def _handle_server_info(self):
+        """Handle server version and build date display"""
+        self.server.send(format_server_info(self.server.version, self.server.build_date))
+
+    def _handle_uptime_display(self):
+        self.server.send(calculate_uptime(self.server.start_time))
+
+    def _handle_users_management(self):
+        """Switch to user management menu"""
+        self.current_commands = load_menu_config("manage_users_menu","logged_in","admin")
+        self.server.send("User management menu", (self.current_commands, "list"))
+
+    def _handle_return(self):
+        """Return to the main Admin menu"""
+        self._set_admin_state()
+
+    def _handle_server_shutdown(self):
+        print("Shutting down...")
+        sleep(2)
+        self.server.connection.close()
+        exit()
+
+    def _handle_help(self):
+        self.server.send("Available Commands", (self.current_commands, "list"))
 
 
