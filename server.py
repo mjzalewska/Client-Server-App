@@ -1,12 +1,11 @@
-import json
 import logging
 import socket
-from datetime import datetime, timedelta
-from time import sleep
+from datetime import datetime
 
 from communication import CommunicationProtocol
+from menu import Menu
 from user_model import User
-from utilities import load_menu_config, get_user_input, calculate_uptime, format_server_info
+from utilities import get_user_input
 
 
 class Server:
@@ -29,8 +28,7 @@ class Server:
         self.build_date = "2023-12-03"
         self.start_time = datetime.now()
         self.user = None
-        self.user_commands = None
-        self.admin_commands = None
+        self.menu = Menu(self)
         logging.basicConfig(filename='server.log', level=logging.INFO,
                             format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -55,11 +53,9 @@ class Server:
             self.connection, self.address = self.server_sock.accept()
             logging.info(f"Accepted connection from {self.address[0]}:{self.address[1]}")
             print(f"Accepted connection from {self.address[0]}:{self.address[1]}")
-
             self.com_protocol = CommunicationProtocol(self.connection)
-            self.user_commands = load_menu_config("login_menu", "logged_out", "user")
             welcome_message = f"Connected to server at {self.host}"
-            self.send(welcome_message, (self.user_commands, "list"))
+            self.send(welcome_message, (self.menu.current_commands, "list"))
 
         except OSError as e:
             logging.error(f"Server failed to start: {e}")
@@ -67,6 +63,10 @@ class Server:
         except Exception as e:
             logging.error(f"An error occurred during server startup: {e}")
             raise
+
+    def run_main_menu(self):
+        """Initialize and display main menu"""
+        self.menu.update_menu_state()
 
     def cleanup(self):
         """Cleans up resources after connection has been closed"""
@@ -199,120 +199,16 @@ class Server:
             self.send(f"Operation failed! Please try again later", status="error")
             logging.info(f"Failed to retrieve user data due to the following error: {e}")
 
-    def run_main_menu(self):
-        """Displays the main menu based on user role."""
-        if not self.user:
-            self.user_commands = load_menu_config("login_menu", "logged_out", "user")
-            self.send("Please log in or register", (self.user_commands, "list"))
-        elif self.user.role == "admin":
-            self.admin_commands = load_menu_config("login_menu", "logged_in", "admin")
-            self.send("Admin Main Menu", (self.admin_commands, "list"))
-        elif self.user.role == "user":
-            self.user_commands = load_menu_config("login_menu", "logged_in", "user")
-            self.send("User Main Menu", (self.user_commands, "list"))
-
-    def run_manage_users_menu(self):
-        while True:
-            self.admin_commands = load_menu_config("manage_users_menu", "logged_in", "admin")
-            self.send("User management menu", (self.admin_commands, "list"))
-            command = self.receive()["message"]
-            if command.casefold() in self.admin_commands.keys():
-                match command.casefold():
-                    case "add":
-                        required_fields = ["username", "password", "email", "user role"]
-                        user_data = get_user_input(self, required_fields)
-                        if User.register(user_data["username"], user_data["password"], user_data["email"],
-                                         user_data["user role"]):
-                            self.send(f"User {user_data['username']} added successfully!")
-                        else:
-                            self.send("Operation failed!", status="error")
-                            logging.error(f"New user signup failed for username: {user_data['username']}")
-                    case "delete":
-                        required_fields = ["username"]
-                        username = get_user_input(self, required_fields)["username"]
-                        self.process_account_deletion(username)
-                    case "show":
-                        self.send("Enter username: ")
-                        username = self.receive()["message"]
-                        self.get_user_data(username)
-                    case "show all":
-                        self.get_user_data()
-                        continue
-                    case "return":
-                        self.admin_commands = load_menu_config("login_menu", "logged_in", "admin")
-                        self.send("Admin Main Menu", (self.admin_commands, "list"))
-                        return
-                    case "help":
-                        self.send("User management menu", (self.admin_commands, "list"))
-
-            else:
-                self.send("Unknown request. Choose correct command!", (self.admin_commands, "list"), status="error")
-                logging.error(f"Bad request received from {self.address[0]}:{self.address[1]}")
-
-    def run_user_menu(self, command):
-        if command.casefold() in self.user_commands.keys():
-            match command.casefold():
-                case "inbox":
-                    print("This is your inbox")
-                case "info":
-                    self.get_user_data(self.user.username)
-                case "help":
-                    self.send("This server can run the following commands: ", (self.user_commands, "list"))
-                case "sign out":
-                    self.process_logout()
-                case "disconnect":
-                    pass
-        else:
-            self.send("Unknown request. Choose correct command!", (self.user_commands, "list"), status="error")
-            logging.error(f"Bad request received from {self.address[0]}:{self.address[1]}")
-
-    def run_admin_menu(self, command):
-        if command.casefold() in self.admin_commands.keys():
-            match command.casefold():
-                case "info":
-                    self.send(f"version: {self.version}, build: {self.build_date}")
-                case "uptime":
-                    uptime = calculate_uptime(self.start_time)
-                    self.send(f"server uptime (hh:mm:ss): {uptime}")
-                case "help":
-                    self.send("This server can run the following commands: ", (self.admin_commands, "list"))
-                case "close":
-                    print("Shutting down...")
-                    sleep(2)
-                    self.connection.close()
-                    exit()
-                case "users":
-                    self.run_manage_users_menu()
-                case "inbox":
-                    pass
-                case "sign out":
-                    self.process_logout()
-        else:
-            self.send("Unknown request. Choose correct command!", (self.admin_commands, "list"), "error")
-            logging.error(f"Bad request received from {self.address[0]}:{self.address[1]}")
-
     def run(self):
         try:
             self.start_server()
+            self.run_main_menu()
             while True:
                 try:
                     client_msg = self.receive()["message"]
-                    if not self.user or not self.user.is_logged_in:
-                        self.user_commands = load_menu_config("login_menu", "logged_out", "user")
-                        if client_msg in self.user_commands.keys():
-                            match client_msg:
-                                case "log in":
-                                    self.process_login()
-                                case "register":
-                                    self.process_registration(["username", "password", "email"])
-                        else:
-                            self.send("Unknown request. Choose correct command!", (self.user_commands, "list"), "error")
-                            logging.error(f"Bad request received from {self.address[0]}:{self.address[1]}")
-                    else:
-                        if self.user.role == "user":
-                            self.run_user_menu(client_msg)
-                        elif self.user.role == "admin":
-                            self.run_admin_menu(client_msg)
+
+                    if not self.menu.handle_command(client_msg):
+                        continue
                 except ConnectionAbortedError:
                     print("Client disconnected. Waiting for new connection...")
                     break
@@ -324,7 +220,7 @@ class Server:
                     try:
                         self.send("An error occurred processing your request. Please try again.", status="error")
                         if not self.user or not self.user.is_logged_in:
-                            self.send("Available commands:", (self.user_commands, "list"))
+                            self.menu.update_menu_state()
                     except ConnectionError:
                         logging.error(f"Could not send error message to client {self.address}")
                         break
@@ -337,10 +233,6 @@ if __name__ == "__main__":
     server = Server(55555)
     server.run()
 
-# manage users menu:
-# - opóźnienie w przypadku wywoałania komend (od 1 do 3x)
-# - problem z return
-
 
 # sending messages - 5 messages per inbox for regular user, no limit for admin
 # limit exceeded alert for the sender
@@ -348,5 +240,4 @@ if __name__ == "__main__":
 
 # data validation for email and password len
 # hide chars when typing password?
-# to return error messages (user already exists, error when operation failed, etc.) - user model
 # refactor the app to use select
