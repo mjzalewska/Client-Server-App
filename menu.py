@@ -124,8 +124,12 @@ class Menu:
         self.server.process_logout()
         self.update_menu_state()
 
-    # def _handle_user_info(self):
-    #     pass
+    def _handle_user_info(self):
+        if self.server.user.role == "user":
+            self.server.get_user_data(self.server.user.username)
+        self.server.send("Enter username: ")
+        username = self.server.receive()["message"]
+        self.server.get_user_data(username)
 
     def _handle_client_exit(self):
         """Handle client exit request"""
