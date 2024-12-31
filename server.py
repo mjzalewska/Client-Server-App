@@ -132,16 +132,16 @@ class Server:
         try:
             user_data = get_user_input(self, required_fields)
             if User.register(username=user_data["username"], password=user_data["password"], email=user_data["email"]):
-                self.send("Registration successful!", (self.user_commands, "list"))
+                self.send(f"User {user_data['username']} added successfully!", (self.user_commands, "list"))
         except ValueError as e:
             self.send(f"Registration failed: {e}", status="error")
-            logging.info(f"Registration failed - validation error: {e}")
+            logging.info(f"New user signup failed for username: {user_data['username']}: {e}")
         except TypeError as e:
             self.send(f"Invalid input format!", status="error")
-            logging.info(f"Registration failed - invalid input: {e}")
+            logging.info(f"New user signup failed for username: {user_data['username']}: {e}")
         except OSError as e:
             self.send(f"Registration failed. Please try again later!", status="error")
-            logging.info(f"Registration failed due to the following error: {e}")
+            logging.info(f"New user signup failed for username {user_data['username']}  to the following error: {e}")
 
     def process_account_deletion(self, username):
         """Process user account removal"""

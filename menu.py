@@ -1,6 +1,5 @@
 import logging
 from time import sleep
-
 from utilities import load_menu_config, format_server_info, calculate_uptime, get_user_input
 
 
@@ -39,7 +38,7 @@ class Menu:
         }
 
         self.user_management_commands = {
-            "add": self._handle_user_addition,
+            "add": self._handle_registration,
             "delete": self._handle_user_deletion,
             "user info": self._handle_user_info,
             "user info -a": self._handle_user_info,
@@ -113,7 +112,12 @@ class Menu:
         self.update_menu_state()
 
     def _handle_registration(self):
-        self.server.process_registration(["username", "password", "email"])
+        """Handle new account registration"""
+        if self.server.user.role == "user":
+            required_fields = ["username", "password", "email"]
+        else:
+            required_fields = ["username", "password", "email", "user role"]
+        self.server.process_registration(required_fields)
         self.update_menu_state()
 
     def _handle_logout(self):
