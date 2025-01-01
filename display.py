@@ -6,6 +6,7 @@ class Display:
     @staticmethod
     def display_message(message):
         if message.get("message"):
+            print()
             print(message["message"])
         if message.get("data"):
             try:
