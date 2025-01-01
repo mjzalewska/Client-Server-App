@@ -1,7 +1,8 @@
 import logging
 import socket
 from datetime import datetime
-
+from logging.handlers import RotatingFileHandler
+from time import sleep
 from communication import CommunicationProtocol
 from menu import Menu
 from user_model import User
@@ -29,8 +30,8 @@ class Server:
         self.start_time = datetime.now()
         self.user = None
         self.menu = Menu(self)
-        logging.basicConfig(filename='server.log', level=logging.INFO,
-                            format='%(asctime)s - %(levelname)s - %(message)s')
+        logging.basicConfig(handlers=[RotatingFileHandler('server.log', maxBytes=5*1024*1024, backupCount=5)],
+                            level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
     def start_server(self):
         """
@@ -55,8 +56,7 @@ class Server:
             print(f"Accepted connection from {self.address[0]}:{self.address[1]}")
             self.com_protocol = CommunicationProtocol(self.connection)
             welcome_message = f"Connected to server at {self.host}"
-            self.send(welcome_message, (self.menu.current_commands, "list"))
-
+            self.send(welcome_message, prompt=False)
         except OSError as e:
             logging.error(f"Server failed to start: {e}")
             raise
@@ -81,14 +81,21 @@ class Server:
             except Exception as e:
                 logging.error(f"Error closing server socket: {e}")
 
-    def send(self, message, data=None, status="success"):
+    def send(self, message, data=None, status="success", prompt=True):
         """
             Send messages with proper formatting and error handling.
             Handles business logic for message formatting and error responses.
         """
         try:
-            message_to_send = self.com_protocol.format_message(message, data=data, status=status, )
+            if not message and not data:
+                return
+            message_to_send = self.com_protocol.format_message(message, data=data, status=status)
             self.com_protocol.send(message_to_send)
+
+            if prompt and ((data and data[1] == "list") or (message and not data)): ### spr część (message and not data)
+                ready_signal = self.com_protocol.format_message("", status="ready_for_input")
+                self.com_protocol.send(ready_signal)
+
         except ConnectionError as e:
             logging.error(f"Connection lost: {e}")
             raise
@@ -100,13 +107,6 @@ class Server:
     def receive(self):
         """
         Receive and process a message from a client.
-
-        Returns:
-        Message: The received message object
-
-        Raises:
-        ConnectionError: If the client connection is lost
-        RuntimeError: If there are problems processing the message
         """
         try:
             message = self.com_protocol.receive()
@@ -132,7 +132,7 @@ class Server:
         try:
             user_data = get_user_input(self, required_fields)
             if User.register(username=user_data["username"], password=user_data["password"], email=user_data["email"]):
-                self.send(f"User {user_data['username']} added successfully!", (self.user_commands, "list"))
+                self.send(f"User {user_data['username']} added successfully!") #, (self.user_commands, "list"))
         except ValueError as e:
             self.send(f"Registration failed: {e}", status="error")
             logging.info(f"New user signup failed for username: {user_data['username']}: {e}")
@@ -149,7 +149,7 @@ class Server:
             self.send(f"Are you sure you want to delete user {username}? Y/N")
             if self.receive()["message"].upper() == "Y":
                 if User.delete(username):
-                    self.send(f"User {username} deleted successfully!")
+                    self.send(f"User {username} deleted successfully!", prompt=False)
             self.send("Operation has been cancelled!")
             return
 
@@ -169,19 +169,18 @@ class Server:
             try:
                 user_credentials = get_user_input(self, ["username", "password"])
                 self.user = User.log_in(user_credentials["username"], user_credentials["password"])
-                self.send("Logged in successfully")
-                self.run_main_menu()
                 break
             except (KeyError, ValueError) as e:
                 logging.info(f"Login failed: {e}")
-                self.send("Incorrect username or password!", status="error")
+                self.send("Incorrect username or password!", status="error", prompt=False)
             except (TypeError, AttributeError) as e:
                 logging.error(f"Login failed due to system error: {e}")
-                self.send("Incorrect input!", status="error")
+                self.send("Incorrect input!", status="error", prompt=False)
 
     def process_logout(self):
         self.user = None
-        self.send("You have been successfully logged out!")
+        self.send("You have been successfully logged out!", prompt=False)
+        sleep(0.1)
         self.run_main_menu()
 
     def get_user_data(self, username=None):

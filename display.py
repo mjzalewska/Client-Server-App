@@ -13,8 +13,10 @@ class Display:
                 if display_type == "list" and data_content:
                     for key, value in data_content.items():
                         print(f"{key}: {value}")
+                    print()
                 elif display_type == "tabular" and data_content:
                     Display.display_tables(message)
+                    print()
             except (ValueError, TypeError):
                 logging.error(f"Error displaying message data")
                 print(f"Error displaying message")

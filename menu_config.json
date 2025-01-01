@@ -16,14 +16,14 @@
       "user": {
         "inbox": "go to inbox",
         "info": "display user data",
-        "sign out": "log out",
+        "log out": "log out",
         "help": "display available commands"
       },
       "admin": {
         "close": "stop server and client",
         "inbox": "go to inbox",
         "info": "display server version and build date",
-        "sign out": "log out",
+        "log out": "log out",
         "uptime": "display server uptime",
         "users": "manage users",
         "help": "display available commands"

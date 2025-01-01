@@ -13,14 +13,14 @@ class CommunicationProtocol:
         Creates a consistently formatted message dictionary for both success and error cases.
         Args:
             message: The main message content to be sent
-            status: Message status - either "success" or "error" (default: "success")
+            status: Message status - "success", "error" or "ready for input" (default: "success")
             data: Optional data payload (default: None)
 
         Returns:
             dict: A properly formatted message dictionary
         """
-        if status not in ["success", "error"]:
-            raise ValueError("Status must either be 'success' or 'error'")
+        if status not in ["success", "error", "ready_for_input"]:
+            raise ValueError("Status must either be 'success', 'error' or 'ready for input'")
         return {
             "status": status,
             "message": message,

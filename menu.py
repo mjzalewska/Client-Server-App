@@ -58,17 +58,17 @@ class Menu:
     def _set_logged_out_state(self):
         """Configure menu for logged-out users"""
         self.current_commands = load_menu_config("menu", "logged_out", "user")
-        self.server.send("Please log in or register", (self.current_commands, "list"))
+        self.server.send("Please log in or register", (self.current_commands, "list"), prompt=True)
 
     def _set_admin_state(self):
         """Configure menu for admins"""
         self.current_commands = load_menu_config("menu", "logged_in", "admin")
-        self.server.send("Administrator Main Menu", (self.current_commands, "list"))
+        self.server.send("Administrator Main Menu", (self.current_commands, "list"), prompt=True)
 
     def _set_user_state(self):
         """Configure menu for regular users"""
         self.current_commands = load_menu_config("menu", "logged_in", "user")
-        self.server.send("User Main Menu", (self.current_commands, "list"))
+        self.server.send("User Main Menu", (self.current_commands, "list"), prompt=True)
 
     def _enter_user_management_menu(self):
         """Switch to user management menu state"""
@@ -113,9 +113,9 @@ class Menu:
 
     def _handle_registration(self):
         """Handle new account registration"""
-        if self.server.user.role == "user":
+        if self.server.user is None:
             required_fields = ["username", "password", "email"]
-        else:
+        elif self.server.user.role == "admin":
             required_fields = ["username", "password", "email", "user role"]
         self.server.process_registration(required_fields)
         self.update_menu_state()
