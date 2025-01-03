@@ -35,10 +35,10 @@
       "admin": {
         "add": "add new account",
         "delete": "remove account",
-        "show": "show selected user record",
-        "show all": "show all users",
+        "user info": "show selected user record",
+        "user info -a": "show all users",
         "help": "display available commands",
-        "return": "return to previous screen "
+        "back": "return to previous screen "
       }
     }
   },

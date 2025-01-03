@@ -59,7 +59,7 @@ class UserDAO:
             raise
 
     @staticmethod
-    def get_user(username):
+    def get_user(username=None):
         """
         Retrieve user data.
 
@@ -74,12 +74,15 @@ class UserDAO:
             ValueError: If username is empty
             OSError: If database access fails
         """
-        if not isinstance(username, str):
-            raise TypeError("Username must be a string")
-        if not username.strip():
-            raise ValueError("Username cannot be empty")
         try:
-            return DbManager.get(username)
+            if username is None:
+                return DbManager.get()
+            else:
+                if not isinstance(username, str):
+                    raise TypeError("Username must be a string")
+                if not username.strip():
+                    raise ValueError("Username cannot be empty")
+                return DbManager.get(username)
         except (ValueError, KeyError) as e:
             logging.error(f"Failed to retrieve user data: {e}")
             raise

@@ -3,6 +3,10 @@ from time import sleep
 from utilities import load_menu_config, format_server_info, calculate_uptime, get_user_input
 
 
+# cannot add admin user
+# when new user registered menu returns to the main admin menu
+# after user info displayed no command prompt (should be)
+
 class Menu:
     """
     Manages server menus and command execution. Each menu has its own state
@@ -41,14 +45,16 @@ class Menu:
             "add": self._handle_registration,
             "delete": self._handle_user_deletion,
             "user info": self._handle_user_info,
-            "user info -a": self._handle_user_info,
+            "user info -a": self._handle_all_users_info,
             "help": self._handle_help,
             "back": self._handle_return
         }
 
     def update_menu_state(self):
         """Update menu commands based on current user state (logged in, logged out)"""
-        if not self.server.user:
+        if self.current_commands.keys() == self.user_management_commands.keys():
+            self._enter_user_management_menu()
+        elif not self.server.user:
             self._set_logged_out_state()
         elif self.server.user.role == "admin":
             self._set_admin_state()
@@ -82,6 +88,8 @@ class Menu:
 
     def _get_command_handler(self, command):
         """Get appropriate handler for current menu state"""
+        if self.current_commands.keys() == self.user_management_commands.keys():
+            return self.user_management_commands[command]
         if not self.server.user:
             return self.logged_out_commands[command]
         elif self.server.user.role == "admin":
@@ -116,7 +124,7 @@ class Menu:
         if self.server.user is None:
             required_fields = ["username", "password", "email"]
         elif self.server.user.role == "admin":
-            required_fields = ["username", "password", "email", "user role"]
+            required_fields = ["username", "password", "email", "role"]
         self.server.process_registration(required_fields)
         self.update_menu_state()
 
@@ -127,9 +135,13 @@ class Menu:
     def _handle_user_info(self):
         if self.server.user.role == "user":
             self.server.get_user_data(self.server.user.username)
-        self.server.send("Enter username: ")
-        username = self.server.receive()["message"]
-        self.server.get_user_data(username)
+        else:
+            self.server.send("Enter username: ")
+            username = self.server.receive()["message"]
+            self.server.get_user_data(username)
+
+    def _handle_all_users_info(self):
+        self.server.get_all_users()
 
     def _handle_client_exit(self):
         """Handle client exit request"""
@@ -145,11 +157,11 @@ class Menu:
         self.server.send(format_server_info(self.server.version, self.server.build_date))
 
     def _handle_uptime_display(self):
-        self.server.send(calculate_uptime(self.server.start_time))
+        self.server.send(f"Server uptime:{calculate_uptime(self.server.start_time)} (hh:mm:ss)")
 
     def _handle_users_management(self):
         """Switch to user management menu"""
-        self.current_commands = load_menu_config("manage_users_menu","logged_in","admin")
+        self.current_commands = load_menu_config("manage_users_menu", "logged_in", "admin")
         self.server.send("User management menu", (self.current_commands, "list"))
 
     def _handle_user_deletion(self):
@@ -169,5 +181,3 @@ class Menu:
 
     def _handle_help(self):
         self.server.send("Available Commands", (self.current_commands, "list"))
-
-

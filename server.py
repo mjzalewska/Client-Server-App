@@ -8,6 +8,9 @@ from menu import Menu
 from user_model import User
 from utilities import get_user_input
 
+# users menu + register przez admina
+# refactor clienta
+
 
 class Server:
     def __init__(self, port, server_sock=None):
@@ -132,7 +135,7 @@ class Server:
         try:
             user_data = get_user_input(self, required_fields)
             if User.register(username=user_data["username"], password=user_data["password"], email=user_data["email"]):
-                self.send(f"User {user_data['username']} added successfully!") #, (self.user_commands, "list"))
+                self.send(f"User {user_data['username']} added successfully!")
         except ValueError as e:
             self.send(f"Registration failed: {e}", status="error")
             logging.info(f"New user signup failed for username: {user_data['username']}: {e}")
@@ -184,7 +187,7 @@ class Server:
         self.run_main_menu()
 
     def get_user_data(self, username=None):
-        """Retrieve user information"""
+        """Retrieve single user information"""
         try:
             user_data = User.get(username)
             self.send("", (user_data, "tabular"))
@@ -197,6 +200,18 @@ class Server:
         except OSError as e:
             self.send(f"Operation failed! Please try again later", status="error")
             logging.info(f"Failed to retrieve user data due to the following error: {e}")
+
+    def get_all_users(self):
+        """Retrieve and display data for all users"""
+        try:
+            user_data = User.get()
+            if user_data:
+                self.send("All Users:", (user_data, "tabular"))
+            else:
+                self.send("No users found in the system.")
+        except Exception as e:
+            logging.error(f"Failed to retrieve user data: {e}")
+            self.send("Failed to retrieve user data", status="error")
 
     def run(self):
         try:
