@@ -4,6 +4,7 @@ from utilities import load_menu_config, format_server_info, calculate_uptime, ge
 
 
 # after user info displayed no command prompt (should be)
+# handle WINError 10038 after client exits
 
 class Menu:
     """

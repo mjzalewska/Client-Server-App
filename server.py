@@ -8,9 +8,6 @@ from menu import Menu
 from user_model import User
 from utilities import get_user_input
 
-# users menu + register przez admina
-# refactor clienta
-
 
 class Server:
     def __init__(self, port, server_sock=None):
@@ -262,3 +259,4 @@ if __name__ == "__main__":
 # data validation for email and password len
 # hide chars when typing password
 # refactor the app to use select
+# client code refactor

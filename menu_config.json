@@ -4,12 +4,12 @@
       "user": {
         "log in": "log in to an existing account",
         "register": "create a new account",
-        "disconnect": "disconnect"
+        "exit": "disconnect"
       },
       "admin": {
         "log in": "log in to an existing account",
         "register": "create a new account",
-        "disconnect": "disconnect"
+        "exit": "disconnect"
       }
     },
     "logged_in": {
