@@ -132,10 +132,15 @@ class Server:
 
     def process_registration(self, required_fields):
         """Process new user registration"""
+        user_data = get_user_input(self, required_fields)
         try:
-            user_data = get_user_input(self, required_fields)
-            if User.register(username=user_data["username"], password=user_data["password"], email=user_data["email"]):
-                self.send(f"User {user_data['username']} added successfully!")
+            if self.user.role == "user":
+                if User.register(username=user_data["username"], password=user_data["password"], email=user_data["email"]):
+                    self.send(f"User {user_data['username']} added successfully!")
+            else:
+                if User.register(username=user_data["username"], password=user_data["password"],
+                                 email=user_data["email"], role=user_data["role"]):
+                    self.send(f"User {user_data['username']} added successfully!")
         except ValueError as e:
             self.send(f"Registration failed: {e}", status="error")
             logging.info(f"New user signup failed for username: {user_data['username']}: {e}")
@@ -144,7 +149,7 @@ class Server:
             logging.info(f"New user signup failed for username: {user_data['username']}: {e}")
         except OSError as e:
             self.send(f"Registration failed. Please try again later!", status="error")
-            logging.info(f"New user signup failed for username {user_data['username']}  to the following error: {e}")
+            logging.info(f"New user signup failed for username {user_data['username']} due to the following error: {e}")
 
     def process_account_deletion(self, username):
         """Process user account removal"""
@@ -153,7 +158,8 @@ class Server:
             if self.receive()["message"].upper() == "Y":
                 if User.delete(username):
                     self.send(f"User {username} deleted successfully!", prompt=False)
-            self.send("Operation has been cancelled!")
+            else:
+                self.send("Operation has been cancelled!")
             return
 
         except KeyError:
@@ -252,6 +258,7 @@ if __name__ == "__main__":
 # limit exceeded alert for the sender
 # message len limit - 255 chars
 
+# all users data retrieval sorted a-z
 # data validation for email and password len
-# hide chars when typing password?
+# hide chars when typing password
 # refactor the app to use select

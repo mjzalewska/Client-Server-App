@@ -3,8 +3,6 @@ from time import sleep
 from utilities import load_menu_config, format_server_info, calculate_uptime, get_user_input
 
 
-# cannot add admin user
-# when new user registered menu returns to the main admin menu
 # after user info displayed no command prompt (should be)
 
 class Menu:
@@ -121,6 +119,7 @@ class Menu:
 
     def _handle_registration(self):
         """Handle new account registration"""
+        required_fields = []
         if self.server.user is None:
             required_fields = ["username", "password", "email"]
         elif self.server.user.role == "admin":
