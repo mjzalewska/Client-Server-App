@@ -3,7 +3,6 @@ from time import sleep
 from utilities import load_menu_config, format_server_info, calculate_uptime, get_user_input
 
 
-# after user info displayed no command prompt (should be)
 # handle WINError 10038 after client exits
 
 class Menu:
@@ -110,6 +109,8 @@ class Menu:
             handler = self._get_command_handler(command)
             handler()
             return True
+        except ConnectionAbortedError:
+            raise
         except Exception as e:
             logging.error(f"Error executing command '{command}': {e}")
             self.server.send("An error occurred. Please try again.", status="error")
@@ -145,7 +146,8 @@ class Menu:
 
     def _handle_client_exit(self):
         """Handle client exit request"""
-        self.server.send("Goodbye!")
+        self.server.send("Goodbye! Disconnecting...", prompt=False)
+        sleep(2)
         self.server.connection.close()
         raise ConnectionAbortedError("Client requested to exit")
 

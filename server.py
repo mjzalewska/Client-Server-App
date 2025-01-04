@@ -36,16 +36,6 @@ class Server:
     def start_server(self):
         """
         Start the server and handle a single client connection.
-
-        This method:
-            1. Binds and starts listening on the specified port
-            2. Accepts  client connection
-            3. Sets up the communication protocol
-            4. Sends the initial welcome message and available commands
-
-        Raises:
-            OSError: If binding or listening fails
-            ConnectionError: If accepting the connection fails
         """
         try:
             self.server_sock.bind((self.host, self.port))
@@ -92,7 +82,7 @@ class Server:
             message_to_send = self.com_protocol.format_message(message, data=data, status=status)
             self.com_protocol.send(message_to_send)
 
-            if prompt and ((data and data[1] == "list") or (message and not data)): ### spr część (message and not data)
+            if prompt:
                 ready_signal = self.com_protocol.format_message("", status="ready_for_input")
                 self.com_protocol.send(ready_signal)
 
@@ -131,13 +121,13 @@ class Server:
         """Process new user registration"""
         user_data = get_user_input(self, required_fields)
         try:
-            if self.user.role == "user":
+            if not self.user:
                 if User.register(username=user_data["username"], password=user_data["password"], email=user_data["email"]):
-                    self.send(f"User {user_data['username']} added successfully!")
-            else:
+                    self.send(f"User {user_data['username']} added successfully!", prompt=False)
+            elif self.user.role == "admin":
                 if User.register(username=user_data["username"], password=user_data["password"],
                                  email=user_data["email"], role=user_data["role"]):
-                    self.send(f"User {user_data['username']} added successfully!")
+                    self.send(f"User {user_data['username']} added successfully!", prompt=False)
         except ValueError as e:
             self.send(f"Registration failed: {e}", status="error")
             logging.info(f"New user signup failed for username: {user_data['username']}: {e}")
@@ -154,7 +144,7 @@ class Server:
             self.send(f"Are you sure you want to delete user {username}? Y/N")
             if self.receive()["message"].upper() == "Y":
                 if User.delete(username):
-                    self.send(f"User {username} deleted successfully!", prompt=False)
+                    self.send(f"User {username} deleted successfully!")
             else:
                 self.send("Operation has been cancelled!")
             return
@@ -187,7 +177,6 @@ class Server:
         self.user = None
         self.send("You have been successfully logged out!", prompt=False)
         sleep(0.1)
-        self.run_main_menu()
 
     def get_user_data(self, username=None):
         """Retrieve single user information"""
@@ -228,7 +217,7 @@ class Server:
                         continue
                 except ConnectionAbortedError:
                     print("Client disconnected. Waiting for new connection...")
-                    break
+                    exit()
                 except ConnectionError:
                     print("Connection has been lost!")
                     exit()
@@ -250,13 +239,3 @@ if __name__ == "__main__":
     server = Server(55555)
     server.run()
 
-
-# sending messages - 5 messages per inbox for regular user, no limit for admin
-# limit exceeded alert for the sender
-# message len limit - 255 chars
-
-# all users data retrieval sorted a-z
-# data validation for email and password len
-# hide chars when typing password
-# refactor the app to use select
-# client code refactor

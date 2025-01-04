@@ -17,7 +17,8 @@
         "inbox": "go to inbox",
         "info": "display user data",
         "log out": "log out",
-        "help": "display available commands"
+        "help": "display available commands",
+        "exit": "disconnect"
       },
       "admin": {
         "close": "stop server and client",
