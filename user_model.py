@@ -138,10 +138,13 @@ class User:
             if username is not None:
                 if not isinstance(username, str) or not username.strip():
                     raise ValueError("Invalid username")
-            data = UserDAO.get_user(username)
-            if not data:
-                raise KeyError(f"User {username} not found")
-            return data
+                data = UserDAO.get_user(username)
+                if not data:
+                    raise KeyError(f"User {username} not found")
+                return data
+            all_users = UserDAO.get_user()
+            sorted_result = {key: all_users[key] for key in sorted(all_users.keys())}
+            return sorted_result
         except (ValueError, KeyError) as e:
             logging.error(f"Failed to retrieve user data: {e}")
             raise
