@@ -104,16 +104,15 @@ class Menu:
         if not self._is_valid_command(command):
             logging.error(f"Bad request received from {self.server.address}")
             self.server.send("Unknown request. Choose correct command!", (self.current_commands, "list"), "error")
-            return False
+            return True
         try:
             handler = self._get_command_handler(command)
-            handler()
-            return True
-        except ConnectionAbortedError:
-            raise
+            should_continue = handler()
+            return should_continue if isinstance(should_continue, bool) else True
         except Exception as e:
             logging.error(f"Error executing command '{command}': {e}")
             self.server.send("An error occurred. Please try again.", status="error")
+            return True
 
     def _handle_login(self):
         self.server.process_login()
@@ -146,10 +145,20 @@ class Menu:
 
     def _handle_client_exit(self):
         """Handle client exit request"""
-        self.server.send("Goodbye! Disconnecting...", prompt=False)
-        sleep(2)
-        self.server.connection.close()
-        raise ConnectionAbortedError("Client requested to exit")
+        try:
+            self.server.send("Preparing to close connection...", prompt=False)
+            sleep(0.5)
+            self.server.send("Goodbye!", prompt=False)
+            sleep(0.5)
+            self.server.cleanup()
+            return False
+        except Exception as e:
+            logging.error(f"Error during client shutdown: {e}")
+            # try:
+            #     self.server.cleanup()
+            # except Exception:
+            #     pass
+            return False
 
     def _handle_inbox(self):
         pass

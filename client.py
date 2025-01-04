@@ -1,5 +1,6 @@
 import json
 import logging
+from time import sleep, time
 from logging.handlers import RotatingFileHandler
 import os
 import sys
@@ -93,6 +94,20 @@ class Client:
             return msvcrt.getch().decode()
         return None
 
+    def perform_shutdown(self):
+        """Performs graceful shutdown of client connection"""
+        try:
+            server_message = self.handle_response()
+            if "close" in server_message.get("message"):
+                sleep(6)
+                self.client_sock.shutdown(socket.SHUT_RDWR)
+                self.client_sock.close()
+                logging.info("Client shutdown complete")
+
+        except Exception as e:
+            logging.error(f"Error during shutdown: {e}")
+            self.client_sock.close()
+
     def run(self):
         try:
             self.connect()
@@ -108,8 +123,8 @@ class Client:
                             if key_input == '\r':
                                 print()
                                 if input_line.lower() == "close":
-                                    self.client_sock.close()
-                                    return
+                                    self.perform_shutdown()
+
                                 self.send(input_line)
                                 input_line = ""
                                 self.awaiting_input = False

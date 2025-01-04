@@ -30,7 +30,7 @@ class Server:
         self.start_time = datetime.now()
         self.user = None
         self.menu = Menu(self)
-        logging.basicConfig(handlers=[RotatingFileHandler('server.log', maxBytes=5*1024*1024, backupCount=5)],
+        logging.basicConfig(handlers=[RotatingFileHandler('server.log', maxBytes=5 * 1024 * 1024, backupCount=5)],
                             level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
     def start_server(self):
@@ -62,9 +62,10 @@ class Server:
         """Cleans up resources after connection has been closed"""
         if self.connection:
             try:
+                self.connection.shutdown(socket.SHUT_RDWR)
                 self.connection.close()
             except Exception as e:
-                logging.error(f"Error closing connection: {e}")
+                logging.error(f"Error closing client connection: {e}")
         if self.server_sock:
             try:
                 self.server_sock.close()
@@ -122,7 +123,8 @@ class Server:
         user_data = get_user_input(self, required_fields)
         try:
             if not self.user:
-                if User.register(username=user_data["username"], password=user_data["password"], email=user_data["email"]):
+                if User.register(username=user_data["username"], password=user_data["password"],
+                                 email=user_data["email"]):
                     self.send(f"User {user_data['username']} added successfully!", prompt=False)
             elif self.user.role == "admin":
                 if User.register(username=user_data["username"], password=user_data["password"],
@@ -212,15 +214,15 @@ class Server:
             while True:
                 try:
                     client_msg = self.receive()["message"]
-
+                    if not client_msg:
+                        logging.info("Client closed connection")
+                        break
                     if not self.menu.handle_command(client_msg):
-                        continue
-                except ConnectionAbortedError:
-                    print("Client disconnected. Waiting for new connection...")
-                    exit()
-                except ConnectionError:
-                    print("Connection has been lost!")
-                    exit()
+                        logging.info("Client requested shutdown - closing connection")
+                        break
+                except ConnectionError as e:
+                    print(f"Connection has been lost: {e}")
+                    break
                 except RuntimeError as e:
                     logging.error(f"Error processing message from {self.address}: {e}")
                     try:
@@ -228,8 +230,20 @@ class Server:
                         if not self.user or not self.user.is_logged_in:
                             self.menu.update_menu_state()
                     except ConnectionError:
-                        logging.error(f"Could not send error message to client {self.address}")
+                        logging.error(f"Failed to send error message to client {self.address}")
                         break
+                except Exception as e:
+                    logging.error(f"Unexpected error: {e}")
+                    try:
+                        if self.connection and self.connection.fileno() != -1:
+                            self.send("An error occurred. Please try again.", status="error")
+                    except (ConnectionError, OSError) as e:
+                        logging.error(f"Failed to send error message - connection lost: {e}")
+                        break
+                    except Exception as e:
+                        logging.error(f"Failed to send error message - unexpected error: {e}")
+                        break
+
         finally:
             self.cleanup()
             logging.info("Server shutdown complete")
@@ -238,4 +252,3 @@ class Server:
 if __name__ == "__main__":
     server = Server(55555)
     server.run()
-
