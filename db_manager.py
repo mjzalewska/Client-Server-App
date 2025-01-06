@@ -4,10 +4,10 @@ import os
 
 
 class DbManager:
-    db_file = "users.json"
+    def __init__(self, db_table):
+        self.db = db_table
 
-    @classmethod
-    def _read_data(cls):
+    def _read_data(self):
         """
         Helper method to read data from the database.
 
@@ -19,7 +19,7 @@ class DbManager:
             ValueError: If database file is corrupted
         """
         try:
-            with open(cls.db_file, "r", encoding="utf-8") as db:
+            with open(self.db, "r", encoding="utf-8") as db:
                 return json.load(db)
         except FileNotFoundError:
             return {}
@@ -33,8 +33,7 @@ class DbManager:
             logging.error(f"OS error accessing database: {e}")
             raise
 
-    @classmethod
-    def _write_data(cls, data):
+    def _write_data(self, data):
         """
         Helper method to write data to the database.
 
@@ -47,7 +46,7 @@ class DbManager:
             OSError: If file system error occurs
         """
         try:
-            with open(cls.db_file, "w", encoding="utf-8") as db:
+            with open(self.db, "w", encoding="utf-8") as db:
                 json.dump(data, db, indent=4)
         except TypeError as e:
             logging.error(f"Invalid data format for JSON serialization: {e}")
@@ -83,8 +82,7 @@ class DbManager:
             logging.error(f"Failed to save data for key {key}: {e}")
             raise
 
-    @classmethod
-    def delete(cls, key):
+    def delete(self, key):
         """
         Delete a record from the database.
 
@@ -99,11 +97,11 @@ class DbManager:
             OSError: If file system error occurs
         """
         try:
-            data = cls._read_data()
+            data = self._read_data()
             if key not in data:
                 raise KeyError(f"No record found for {key}")
             del data[key]
-            cls._write_data(data)
+            self._write_data(data)
         except KeyError as e:
             logging.error(f"Delete failed - key not found: {e}")
             raise
@@ -111,8 +109,7 @@ class DbManager:
             logging.error(f"Failed to delete record: {e}")
             raise
 
-    @classmethod
-    def get(cls, key=None):
+    def get(self, key=None):
         """
         Retrieve all data or a specific record by key.
 
@@ -127,7 +124,7 @@ class DbManager:
             KeyError: If the key doesn't exist
         """
         try:
-            data = cls._read_data()
+            data = self._read_data()
             if key is None:
                 return data
             if not isinstance(key, str):

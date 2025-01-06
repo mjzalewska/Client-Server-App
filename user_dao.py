@@ -5,6 +5,7 @@ from db_manager import DbManager
 
 
 class UserDAO:
+    db = DbManager("users.json")
 
     @staticmethod
     def hash_password(password):
@@ -31,8 +32,8 @@ class UserDAO:
             logging.error(f"Password hashing failed: {e}")
             raise ValueError("Failed to hash password") from e
 
-    @staticmethod
-    def user_exists(username):
+    @classmethod
+    def user_exists(cls, username):
         """
         Check if a user exists in the database.
 
@@ -51,15 +52,15 @@ class UserDAO:
         if not username.strip():
             raise ValueError("Username cannot be empty")
         try:
-            return DbManager.get(username)[username] is not None
+            return cls.db.get(username)[username] is not None
         except KeyError:
             return False
         except (Exception, ValueError) as e:
             logging.error(f"Error checking user existence: {e}")
             raise
 
-    @staticmethod
-    def get_user(username=None):
+    @classmethod
+    def get_user(cls, username=None):
         """
         Retrieve user data.
 
@@ -76,19 +77,19 @@ class UserDAO:
         """
         try:
             if username is None:
-                return DbManager.get()
+                return cls.db.get()
             else:
                 if not isinstance(username, str):
                     raise TypeError("Username must be a string")
                 if not username.strip():
                     raise ValueError("Username cannot be empty")
-                return DbManager.get(username)
+                return cls.db.get(username)
         except (ValueError, KeyError) as e:
             logging.error(f"Failed to retrieve user data: {e}")
             raise
 
-    @staticmethod
-    def save_user(user_data):
+    @classmethod
+    def save_user(cls, user_data):
         """
         Save user data.
 
@@ -117,13 +118,13 @@ class UserDAO:
             data = {"password_hash": user_data.get("password_hash"),
                     "email": user_data.get("email"),
                     "role": user_data.get("role")}
-            DbManager.save(username, data)
+            cls.db.save(username, data)
         except (ValueError, TypeError) as e:
             logging.error(f"Failed to save user data: {e}")
             raise
 
-    @staticmethod
-    def delete_user(username):
+    @classmethod
+    def delete_user(cls, username):
         """
         Delete a user.
 
@@ -141,7 +142,7 @@ class UserDAO:
         if not username.strip():
             raise ValueError("Username cannot be empty")
         try:
-            DbManager.delete(username)
+            cls.db.delete(username)
         except (KeyError, TypeError, ValueError) as e:
             logging.error(f"Failed to delete user {e}")
             raise
