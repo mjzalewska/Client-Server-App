@@ -57,8 +57,7 @@ class DbManager:
         except OSError as e:
             logging.error(f"OS error writing to database: {e}")
 
-    @classmethod
-    def save(cls, key, value):
+    def save(self, key, value):
         """
         Save or update a record in the database.
 
@@ -75,9 +74,9 @@ class DbManager:
         if not isinstance(value, dict):
             raise ValueError("Invalid value: must be a dictionary")
         try:
-            data = cls._read_data()
+            data = self._read_data()
             data[key] = value
-            cls._write_data(data)
+            self._write_data(data)
         except (ValueError, TypeError, OSError) as e:
             logging.error(f"Failed to save data for key {key}: {e}")
             raise
