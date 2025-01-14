@@ -1,8 +1,5 @@
 import logging
-import time
-
 from db_manager import DbManager
-from user import User
 
 
 class MessageDAO:
@@ -16,7 +13,7 @@ class MessageDAO:
                 raise TypeError("Message data must be in a dictionary format")
             if not isinstance(username, str) or not username.strip():
                 raise ValueError("Invalid recipient (username)")
-            required_msg_fields = {"timestamp", "sender name", "sender email", "content"}
+            required_msg_fields = {"timestamp", "sender name", "sender email", "subject", "content"}
             missing_fields = required_msg_fields - message_data.keys()
             if missing_fields:
                 raise ValueError(f"Missing required fields: {missing_fields}")
@@ -54,7 +51,3 @@ class MessageDAO:
         except (TypeError, ValueError, KeyError) as e:
             logging.error(f"Failed to retrieve messages for user: {username}: {e}")
             raise
-
-
-MessageDAO.save_message("lemon", {"timestamp": time.time(), "sender name": "joanna",
-                          "sender email": "joannak@mail.com", "content": "Hi there!"})

@@ -5,7 +5,7 @@ from logging.handlers import RotatingFileHandler
 from time import sleep
 from communication import CommunicationProtocol
 from menu import Menu
-from user_model import User
+from user import User
 from utilities import get_user_input
 
 
