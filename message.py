@@ -46,7 +46,7 @@ class Message:
         if 0 > message_id > self.inbox_limit:
             raise KeyError("Message not found!")
         try:
-            MessageDAO.get_all(username)[message_id]
+            return MessageDAO.get_all(username)[message_id]
         except (TypeError, KeyError, ValueError) as e:
             logging.error(f"Failed to load message: {e}")
             raise
@@ -84,9 +84,18 @@ class Message:
             logging.error(f"The following error appeared when saving the message to user {recipient} inbox")
             raise
 
-    def get_inbox(self):
+    @staticmethod
+    def get_inbox(username):
         """Get the contents of user mailbox"""
-        pass
+        if not isinstance(username, str) or not username.strip():
+            raise TypeError("Invalid username")
+        if not UserDAO.user_exists(username):
+            raise KeyError("User not found")
+        try:
+            return MessageDAO.get_all(username)
+        except(TypeError, KeyError) as e:
+            logging.error(f"Failed to retiree messages from server: {e}")
+            raise
 
 # add message no to the record either on display or when rertireved from the db
 # decide on which class to handle message id how to save it to the db powinno być user: {id:message}
