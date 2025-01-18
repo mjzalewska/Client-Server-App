@@ -33,9 +33,23 @@ class Message:
             logging.error(f"The following error occurred when composing new message: {e}")
             raise
 
-    def read(self):
+    def read(self, username, message_id):
         """Read the contents of a selected message"""
-        pass
+        if not isinstance(username, str) or not username.strip():
+            raise TypeError("Invalid username")
+        if not UserDAO.user_exists(username):
+            raise KeyError("User not found")
+        if not message_id.isdigit():
+            raise TypeError("Message index must be an integer")
+        if not message_id.strip():
+            raise ValueError("Message index cannot be empty")
+        if 0 > message_id > self.inbox_limit:
+            raise KeyError("Message not found!")
+        try:
+            MessageDAO.get_all(username)[message_id]
+        except (TypeError, KeyError, ValueError) as e:
+            logging.error(f"Failed to load message: {e}")
+            raise
 
     def delete(self, username, message_id):
         """Delete a single message from inbox"""
@@ -43,7 +57,7 @@ class Message:
             raise TypeError("Message index must be an integer")
         if not message_id.strip():
             raise ValueError("Message index cannot be empty")
-        if message_id > self.inbox_limit:
+        if 0 > message_id > self.inbox_limit:
             raise KeyError("Message not found!")
         try:
             MessageDAO.delete_message(username, message_id)
@@ -74,5 +88,5 @@ class Message:
         """Get the contents of user mailbox"""
         pass
 
-
 # add message no to the record either on display or when rertireved from the db
+# decide on which class to handle message id how to save it to the db powinno być user: {id:message}
