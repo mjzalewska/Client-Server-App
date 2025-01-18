@@ -1,8 +1,8 @@
 import logging
 import time
 from datetime import datetime
-
 from message_dao import MessageDAO
+from user_dao import UserDAO
 
 
 class Message:
@@ -37,7 +37,7 @@ class Message:
         """Read the contents of a selected message"""
         pass
 
-    def delete(self, username,message_id):
+    def delete(self, username, message_id):
         """Delete a single message from inbox"""
         if not message_id.isdigit():
             raise TypeError("Message index must be an integer")
@@ -52,16 +52,27 @@ class Message:
             logging.error(f"Failed to delete message: {e}")
             raise
 
-    def save(self):
+    @staticmethod
+    def save(recipient, message):
         """Save message to recipient mailbox"""
-        pass
+        if not isinstance(recipient, str):
+            raise TypeError("Recipient name must be a string")
+        if not recipient.strip():
+            raise ValueError("Recipient cannot be empty")
+        if not isinstance(message, dict):
+            raise TypeError(f"Incorrect message format: {type(message)}")
+        try:
+            if not UserDAO.user_exists(recipient):
+                raise KeyError(f"Recipient {recipient} not found")
+            MessageDAO.save_message(recipient, message)
+            return True
+        except (TypeError, ValueError, KeyError) as e:
+            logging.error(f"The following error appeared when saving the message to user {recipient} inbox")
+            raise
 
     def get_inbox(self):
         """Get the contents of user mailbox"""
         pass
 
 
-
-# check if user record already exists - of not make one
-# if records exists - updaate with new message
 # add message no to the record either on display or when rertireved from the db
