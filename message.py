@@ -70,8 +70,7 @@ class Message:
             logging.error(f"Failed to delete message: {e}")
             raise
 
-    @staticmethod
-    def save(recipient, message):
+    def save(self, recipient, message):
         """Save message to recipient mailbox"""
         if not isinstance(recipient, str):
             raise TypeError("Recipient name must be a string")
@@ -82,8 +81,8 @@ class Message:
         try:
             if not UserDAO.user_exists(recipient):
                 raise KeyError(f"Recipient {recipient} not found")
-            # if len(MessageDAO.get_all(recipient)) >= self.inbox_limit:
-            #     raise ValueError("Inbox limit exceeded.")
+            if len(MessageDAO.get_all(recipient)[recipient]) >= self.inbox_limit:
+                raise ValueError("Inbox limit exceeded.")
             MessageDAO.save_message(recipient, message)
             return True
         except (TypeError, ValueError, KeyError) as e:
@@ -102,5 +101,3 @@ class Message:
         except(TypeError, KeyError) as e:
             logging.error(f"Failed to retiree messages from server: {e}")
             raise
-
-
