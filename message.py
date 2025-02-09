@@ -10,11 +10,11 @@ class Message:
         self.chars_limit = 255
         self.inbox_limit = 5
 
-    def compose(self, recipient, to_email, subject, body):
+    def compose(self, recipient, sender, from_email, to_email, subject, body):
         """Compose a new message"""
-        date = datetime.now()
-        timestamp = (date.day, date.month, date.year, date.time().strftime("%H:%M:%S"))
-        if not all(isinstance(param, str) for param in [recipient, to_email, subject, body, timestamp]):
+        date = datetime.utcnow()
+        timestamp = datetime.strftime(date, "%Y%m%d_%H%M%S")
+        if not all(isinstance(param, str) for param in [recipient, sender, from_email, to_email, subject, body]):
             raise TypeError("All parameters must be strings")
         if not all(param.strip() for param in [recipient, to_email]):
             raise ValueError("Recipient name and email cannot be empty")
@@ -23,7 +23,9 @@ class Message:
         try:
             message_data = {
                 "recipient": recipient,
-                "email": to_email,
+                "sender": sender,
+                "from_email": from_email,
+                "to_email": to_email,
                 "subject": subject,
                 "body": body,
                 "timestamp": timestamp
@@ -33,7 +35,8 @@ class Message:
             logging.error(f"The following error occurred when composing new message: {e}")
             raise
 
-    def read(self, username, message_id):
+    @staticmethod
+    def read(username, message_id):
         """Read the contents of a selected message"""
         if not isinstance(username, str) or not username.strip():
             raise TypeError("Invalid username")
@@ -43,7 +46,7 @@ class Message:
             raise TypeError("Message index must be an integer")
         if not message_id.strip():
             raise ValueError("Message index cannot be empty")
-        if 0 > message_id > self.inbox_limit:
+        if message_id not in MessageDAO.get_all(username):
             raise KeyError("Message not found!")
         try:
             return MessageDAO.get_all(username)[message_id]
@@ -51,13 +54,14 @@ class Message:
             logging.error(f"Failed to load message: {e}")
             raise
 
-    def delete(self, username, message_id):
+    @staticmethod
+    def delete(username, message_id):
         """Delete a single message from inbox"""
         if not message_id.isdigit():
             raise TypeError("Message index must be an integer")
         if not message_id.strip():
             raise ValueError("Message index cannot be empty")
-        if 0 > message_id > self.inbox_limit:
+        if message_id not in MessageDAO.get_all(username):
             raise KeyError("Message not found!")
         try:
             MessageDAO.delete_message(username, message_id)
@@ -78,6 +82,8 @@ class Message:
         try:
             if not UserDAO.user_exists(recipient):
                 raise KeyError(f"Recipient {recipient} not found")
+            # if len(MessageDAO.get_all(recipient)) >= self.inbox_limit:
+            #     raise ValueError("Inbox limit exceeded.")
             MessageDAO.save_message(recipient, message)
             return True
         except (TypeError, ValueError, KeyError) as e:
@@ -97,5 +103,4 @@ class Message:
             logging.error(f"Failed to retiree messages from server: {e}")
             raise
 
-# add message no to the record either on display or when rertireved from the db
-# decide on which class to handle message id how to save it to the db powinno być user: {id:message}
+

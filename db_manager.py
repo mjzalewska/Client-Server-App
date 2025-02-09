@@ -1,7 +1,5 @@
 import json
 import logging
-import os
-
 
 class DbManager:
     def __init__(self, db_table):
@@ -129,7 +127,7 @@ class DbManager:
             if not isinstance(key, str):
                 raise ValueError("Key must be a string")
             if key not in data:
-                raise KeyError(f"No record found for {key}")
+                return {}
             return {key: data.get(key)}
         except ValueError as e:
             logging.error(f"Invalid key type: {e}")

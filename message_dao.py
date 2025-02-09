@@ -1,9 +1,23 @@
+import hashlib
+from datetime import datetime
 import logging
 from db_manager import DbManager
+from user_dao import UserDAO
 
 
 class MessageDAO:
     db = DbManager("mail.json")
+
+    @classmethod
+    def generate_message_id(cls, message_data):
+        now = datetime.now()
+        date_time = now.strftime("%m%d%Y%H%M%S")
+        sender = message_data.get("sender")
+        try:
+            return hashlib.sha1((date_time + sender).encode()).hexdigest()
+        except Exception as e:
+            logging.error(f"Failed to generate message id: {e}")
+            raise
 
     @classmethod
     def save_message(cls, username, message_data):
@@ -13,11 +27,14 @@ class MessageDAO:
                 raise TypeError("Message data must be in a dictionary format")
             if not isinstance(username, str) or not username.strip():
                 raise ValueError("Invalid recipient (username)")
-            required_msg_fields = {"timestamp", "sender name", "sender email", "subject", "content"}
+            message_id = cls.generate_message_id(message_data)
+            required_msg_fields = {"recipient", "sender", "from_email", "to_email", "subject", "body", "timestamp"}
             missing_fields = required_msg_fields - message_data.keys()
             if missing_fields:
                 raise ValueError(f"Missing required fields: {missing_fields}")
-            cls.db.save(username, message_data)
+            user_inbox = cls.get_all(username)
+            user_inbox[username][message_id] = message_data
+            cls.db.save(username, user_inbox[username])
         except (ValueError, TypeError) as e:
             logging.error(f"Failed to save message from user {username}: {e}")
             raise
@@ -47,7 +64,13 @@ class MessageDAO:
                 raise TypeError("Username must be a string")
             if not username.strip():
                 raise ValueError("Username cannot be empty")
-            return cls.db.get(username)
+            if not UserDAO.user_exists(username):
+                raise KeyError("User does not exist")
+            inbox = cls.db.get(username)
+            if not inbox:
+                inbox = {username: {}}
+            return inbox
         except (TypeError, ValueError, KeyError) as e:
             logging.error(f"Failed to retrieve messages for user: {username}: {e}")
             raise
+
