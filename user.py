@@ -1,5 +1,6 @@
 import logging
 from datetime import datetime
+from message_dao import MessageDAO
 from user_dao import UserDAO
 
 
@@ -87,6 +88,7 @@ class User:
                 "role": role
             }
             UserDAO.save_user(user_data)
+            MessageDAO.create_inbox(user_data["username"])
             return True
         except (TypeError, ValueError, OSError) as e:
             logging.error(f"User registration failed: {e}")
@@ -185,3 +187,6 @@ class User:
         except (KeyError, ValueError) as e:
             logging.error(f"Failed to send message: {e}")
             raise
+
+
+User.register("jenna", "EasyPass123", "jenna_g@mail.com", "user")

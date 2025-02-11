@@ -9,6 +9,10 @@ class MessageDAO:
     db = DbManager("mail.json")
 
     @classmethod
+    def create_inbox(cls, username):
+        cls.db.save(username, {})
+
+    @classmethod
     def generate_message_id(cls, message_data):
         now = datetime.now()
         date_time = now.strftime("%m%d%Y%H%M%S")
@@ -73,4 +77,3 @@ class MessageDAO:
         except (TypeError, ValueError, KeyError) as e:
             logging.error(f"Failed to retrieve messages for user: {username}: {e}")
             raise
-
