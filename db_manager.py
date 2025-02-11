@@ -1,24 +1,25 @@
 import json
 import logging
 
+
 class DbManager:
     def __init__(self, db_table):
         self.db = db_table
+        self.file_start = {}
 
     def _read_data(self):
         """
         Helper method to read data from the database.
-
-        Returns:
-            dict: Database contents or empty dict if file doesn't exist
-
-        Raises:
-            PermissionError: If file exists but can't be accessed
-            ValueError: If database file is corrupted
         """
         try:
             with open(self.db, "r", encoding="utf-8") as db:
-                return json.load(db)
+                first_char = db.read(1)
+                if not first_char:
+                    records = self.file_start
+                else:
+                    db.seek(0)
+                    records = json.load(db)
+                return records
         except FileNotFoundError:
             return {}
         except json.JSONDecodeError as e:
@@ -34,14 +35,6 @@ class DbManager:
     def _write_data(self, data):
         """
         Helper method to write data to the database.
-
-        Args:
-            data (dict): Data to write to database
-
-        Raises:
-            PermissionError: If file can't be written to
-            TypeError: If data is not JSON serializable
-            OSError: If file system error occurs
         """
         try:
             with open(self.db, "w", encoding="utf-8") as db:
@@ -58,14 +51,6 @@ class DbManager:
     def save(self, key, value):
         """
         Save or update a record in the database.
-
-        Args:
-            key (str): Record key (username)
-            value (dict): User data to save
-
-        Raises:
-            ValueError: If key or value is invalid
-            TypeError: If value is not JSON serializable
         """
         if not isinstance(key, str) or not key.strip():
             raise ValueError("Invalid key: must be a non-empty string")
