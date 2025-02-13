@@ -1,5 +1,4 @@
 import logging
-import time
 from datetime import datetime
 from message_dao import MessageDAO
 from user_dao import UserDAO
@@ -13,7 +12,7 @@ class Message:
     def compose(self, recipient, sender, from_email, to_email, subject, body):
         """Compose a new message"""
         date = datetime.utcnow()
-        timestamp = datetime.strftime(date, "%Y%m%d_%H%M%S")
+        timestamp = datetime.strftime(date, "%Y-%m-%d% H:%M:%S")
         if not all(isinstance(param, str) for param in [recipient, sender, from_email, to_email, subject, body]):
             raise TypeError("All parameters must be strings")
         if not all(param.strip() for param in [recipient, to_email]):

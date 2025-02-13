@@ -40,3 +40,28 @@ class Display:
         table.max_width = 30
         table.hrules = True
         print(table)
+
+    @staticmethod
+    def display_inbox(message):
+        if not message or not message.get("data"):
+            print("No data to display")
+            return
+        messages = message["data"][0]
+        if not messages:
+            print("No messages to display")
+            return
+        inbox_columns = [" ", "SENDER", "SUBJECT", "DATE"]
+        table = PrettyTable(field_names=inbox_columns)
+        message_number = 1
+        for message in messages.values():
+            for message_data in message.values():
+                table.add_row([
+                    message_number,
+                    message_data["sender"],
+                    message_data["subject"],
+                    message_data["timestamp"]
+                ])
+                message_number += 1
+        table.max_width = 30
+        table.hrules = True
+        print(table)
