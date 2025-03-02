@@ -47,11 +47,18 @@ class Menu:
             "help": self._handle_help,
             "back": self._handle_return
         }
+        self.inbox_commands = {
+            "read": ...,
+            "delete": ...,
+            "compose": ...,
+        }
 
     def update_menu_state(self):
         """Update menu commands based on current user state (logged in, logged out)"""
         if self.current_commands.keys() == self.user_management_commands.keys():
             self._enter_user_management_menu()
+        elif self.current_commands.keys() == self.inbox_commands.keys():
+            self._enter_inbox_menu()
         elif not self.server.user:
             self._set_logged_out_state()
         elif self.server.user.role == "admin":
@@ -79,6 +86,14 @@ class Menu:
         self.current_commands = load_menu_config("manage_users_menu", "logged_in", "admin")
         self.server.send("User management menu", (self.current_commands, "list"))
 
+    def _enter_inbox_menu(self):
+        """Switch to inbox menu state"""
+        if self.server.user.role == "user":
+            self.current_commands = load_menu_config("inbox_menu", "logged_in", "user")
+        else:
+            self.current_commands = load_menu_config("inbox_menu", "logged_in", "admin")
+        self.server.send(f"Inbox.\nWelcome {self.server.user.username}!", (self.current_commands, "list"))
+
     def _is_valid_command(self, command):
         if command in self.current_commands:
             return True
@@ -88,6 +103,8 @@ class Menu:
         """Get appropriate handler for current menu state"""
         if self.current_commands.keys() == self.user_management_commands.keys():
             return self.user_management_commands[command]
+        elif self.current_commands.keys() == self.inbox_commands.keys():
+            return self.inbox_commands[command]
         if not self.server.user:
             return self.logged_out_commands[command]
         elif self.server.user.role == "admin":
@@ -161,6 +178,18 @@ class Menu:
             return False
 
     def _handle_inbox(self):
+        pass
+
+    def _handle_reading_message(self):
+        pass
+
+    def _handle_message_deletion(self):
+        pass
+
+    def _handle_writing_message(self):
+        pass
+
+    def _handle_sending_message(self):
         pass
 
     def _handle_server_info(self):

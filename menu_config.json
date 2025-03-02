@@ -44,6 +44,18 @@
     }
   },
   "inbox_menu": {
+    "logged_in": {
+      "user": {
+        "read": "read an email message",
+        "delete": "remove a message from inbox",
+        "compose": "write a message"
+      }
+    },
+    "admin": {
+        "read": "read an email message",
+        "delete": "remove a message from inbox",
+        "compose": "write a message"
+      }
 
   }
 }
