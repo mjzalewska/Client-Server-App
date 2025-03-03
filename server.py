@@ -207,6 +207,19 @@ class Server:
             logging.error(f"Failed to retrieve user data: {e}")
             self.send("Failed to retrieve user data", status="error")
 
+    def get_inbox(self):
+        """Retrieve contents of user inbox"""
+        pass
+
+    def process_writing_message(self):
+        pass
+
+    def process_reading_message(self):
+        pass
+
+    def process_deleting_message(self):
+        pass
+
     def run(self):
         try:
             self.start_server()
