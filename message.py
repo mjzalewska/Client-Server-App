@@ -16,9 +16,9 @@ class Message:
         if not all(isinstance(param, str) for param in [recipient, sender, from_email, to_email, subject, body]):
             raise TypeError("All parameters must be strings")
         if not all(param.strip() for param in [recipient, to_email]):
-            raise ValueError("Recipient name and email cannot be empty")
+            raise ValueError("Empty parameter error: recipient name and email cannot be empty", "")
         if len(body) > self.chars_limit:
-            raise ValueError("Message exceeds 255 characters")
+            raise ValueError("Message length error: message exceeds 255 characters")
         try:
             message_data = {
                 "recipient": recipient,

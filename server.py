@@ -6,6 +6,7 @@ from time import sleep
 from communication import CommunicationProtocol
 from menu import Menu
 from user import User
+from message import Message
 from utilities import get_user_input
 
 
@@ -29,6 +30,7 @@ class Server:
         self.build_date = "2023-12-03"
         self.start_time = datetime.now()
         self.user = None
+        self.message = Message()
         self.menu = Menu(self)
         logging.basicConfig(handlers=[RotatingFileHandler('server.log', maxBytes=5 * 1024 * 1024, backupCount=5)],
                             level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -211,8 +213,26 @@ class Server:
         """Retrieve contents of user inbox"""
         pass
 
-    def process_writing_message(self):
-        pass
+    def process_writing_message(self, required_fields):
+        message_data = get_user_input(self, required_fields)
+        try:
+            self.message.compose(recipient=message_data["recipient"], sender=self.user.username,
+                                 from_email=self.user.email, to_email=message_data["to_email"],
+                                 subject=message_data["subject"], body=message_data["body"])
+        except ValueError as e:
+            if "length error" in str(e):
+                self.send(f"Message length limit ({self.message.chars_limit}chars) exceeded. Please try again",
+                          status="error")
+                logging.info(f"Failed to initialize new message: {e}")
+            else:
+                self.send("Recipient name and/or e-mail cannot be empty!", status="error")
+                logging.info(f"Failed to initialize new message: {e}")
+        except TypeError as e:
+            self.send(f"Invalid data input format!", status="error")
+            logging.info(f"Failed to initialize new message: {e}")
+        except Exception as e:
+            self.send("An unexpected error occurred. Please try again", status="error")
+            logging.info(f"Failed to initialize new message: {e}")
 
     def process_reading_message(self):
         pass
