@@ -211,7 +211,18 @@ class Server:
 
     def get_inbox(self):
         """Retrieve contents of user inbox"""
-        pass
+        try:
+            inbox_contents = self.message.get_inbox(self.user.username)
+            self.send(inbox_contents, "inbox")
+        except TypeError as e:
+            logging.error(f"Failed to retrieve inbox for user {self.user.username}:{e}")
+            self.send(f"Could not display inbox for user {self.user.username}: invalid username format")
+        except KeyError as e:
+            logging.error(f"Failed to retrieve inbox for user {self.user.username}:{e}")
+            self.send(f"Could not display inbox for user {self.user.username}: user not found")
+        except Exception as e:
+            logging.error(f"Failed to  retrieve inbox for user {self.user.username}: {e}")
+            self.send(f" Failed to display inbox for user {self.user.username}", status="error")
 
     def process_writing_message(self, required_fields):
         message_data = get_user_input(self, required_fields)

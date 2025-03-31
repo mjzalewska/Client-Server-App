@@ -19,6 +19,9 @@ class Display:
                 elif display_type == "tabular" and data_content:
                     Display.display_table(message)
                     print()
+                elif display_type == "inbox" and data_content:
+                    Display.display_inbox(message)
+                    print()
             except (ValueError, TypeError):
                 logging.error(f"Error displaying message data")
                 print(f"Error displaying message")
