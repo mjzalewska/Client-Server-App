@@ -48,9 +48,11 @@ class Menu:
             "back": self._handle_return
         }
         self.inbox_commands = {
-            "read": ...,
-            "delete": ...,
-            "compose": ...,
+            "read": self._handle_reading_message,
+            "delete": self._handle_message_deletion,
+            "compose": self._handle_writing_message,
+            "back": self._handle_return, #poprawka, aby obsługiwało inne menu
+            "help": self._handle_help
         }
 
     def update_menu_state(self):
@@ -178,16 +180,20 @@ class Menu:
             return False
 
     def _handle_inbox(self):
-        pass
+        self.server.get_user_inbox()
 
     def _handle_reading_message(self):
-        pass
+        required_fields = ["id"]
+        self.server.process_reading_message(required_fields) # return to inbox menu
 
     def _handle_message_deletion(self):
-        pass
+        required_fields = ["id"]
+        self.server.process_deleting_message(required_fields)
 
     def _handle_writing_message(self):
-        pass
+        required_fields = ["recipient", "to_email", "subject", "body"]
+        message = self.server.process_writing_message(required_fields) # send message + return to inbox
+        print(message)
 
     def _handle_sending_message(self):
         pass

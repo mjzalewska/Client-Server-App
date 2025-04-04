@@ -48,13 +48,17 @@
       "user": {
         "read": "read an email message",
         "delete": "remove a message from inbox",
-        "compose": "write a message"
+        "compose": "write a message",
+        "back": "return to previous screen",
+        "help": "display available commands"
       }
     },
     "admin": {
         "read": "read an email message",
         "delete": "remove a message from inbox",
-        "compose": "write a message"
+        "compose": "write a message",
+        "back": "return to previous screen",
+        "help": "display available commands"
       }
 
   }

@@ -213,13 +213,13 @@ class Server:
         """Retrieve contents of user inbox"""
         try:
             inbox_contents = self.message.get_inbox(self.user.username)
-            self.send(inbox_contents, "inbox")
+            self.send("Inbox: ", (inbox_contents, "inbox"))
         except TypeError as e:
             logging.error(f"Failed to retrieve inbox for user {self.user.username}:{e}")
-            self.send(f"Could not display inbox for user {self.user.username}: invalid username format")
+            self.send(f"Could not display inbox for user {self.user.username}: invalid username format", status="error")
         except KeyError as e:
             logging.error(f"Failed to retrieve inbox for user {self.user.username}:{e}")
-            self.send(f"Could not display inbox for user {self.user.username}: user not found")
+            self.send(f"Could not display inbox for user {self.user.username}: user not found", status="error")
         except Exception as e:
             logging.error(f"Failed to  retrieve inbox for user {self.user.username}: {e}")
             self.send(f" Failed to display inbox for user {self.user.username}", status="error")
