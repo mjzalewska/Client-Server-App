@@ -209,7 +209,7 @@ class Server:
             logging.error(f"Failed to retrieve user data: {e}")
             self.send("Failed to retrieve user data", status="error")
 
-    def get_inbox(self):
+    def get_user_inbox(self):
         """Retrieve contents of user inbox"""
         try:
             inbox_contents = self.message.get_inbox(self.user.username)
@@ -245,10 +245,36 @@ class Server:
             self.send("An unexpected error occurred. Please try again", status="error")
             logging.info(f"Failed to initialize new message: {e}")
 
-    def process_reading_message(self):
-        pass
+    def process_reading_message(self, required_fields):
+        message_id = get_user_input(self, required_fields)["id"]
+        try:
+            self.message.read(username=self.user.username, message_id=message_id)
+        except TypeError as e:
+            if "username" in str(e):
+                self.send(f"Couldn't retrieve message. User {self.user.username} not found!", status="error")
+                logging.info(f"Failed to retrieve message no {message_id} for user {self.user.username}."
+                             f"Incorrect username format")
+            else:
+                self.send(f"Error retrieving message. Message id must be an integer", status="error")
+                logging.info(f"Failed to retrieve message no {message_id} for user {self.user.username}."
+                             f"Incorrect id format")
+        except KeyError as e:
+            if "User" in str(e):
+                self.send(f"Couldn't retrieve message. User {self.user.username} not found!", status="error")
+                logging.info(f"Failed to retrieve message no {message_id} for user {self.user.username}."
+                             f"User does not exist")
+            else:
+                self.send(f"Couldn't retrieve message. Message not found!", status="error")
+                logging.info(f"Failed to retrieve message no {message_id} for user {self.user.username}:"
+                             f"message not found")
+        except ValueError:
+            self.send("Message id field cannot be empty!", status="error")
+            logging.info(f"Failed to retrieve message for user {self.user.username}: empty message id")
+        except Exception as e:
+            self.send("An unexpected error occurred. Please try again", status="error")
+            logging.info(f"Failed to retrieve message {message_id}: {e}")
 
-    def process_deleting_message(self):
+    def process_deleting_message(self, message_id):
         pass
 
     def run(self):

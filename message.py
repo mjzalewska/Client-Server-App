@@ -100,11 +100,3 @@ class Message:
         except(TypeError, KeyError) as e:
             logging.error(f"Failed to retrieve messages from server: {e}")
             raise
-
-
-from display import Display
-display = Display()
-message = Message()
-data = message.get_inbox("ula_cebula")
-message = {"status": "success", "message": "", "data": (data, "table")}
-display.display_email(2, message)
