@@ -49,12 +49,10 @@ class MessageDAO:
         try:
             if not isinstance(username, str):
                 raise TypeError("Username must be a string")
-            if not isinstance(message_id, int):
-                raise TypeError("Message id must be an integer")
-            if not username.strip():
-                raise ValueError("Username cannot be empty")
             if not str(message_id).strip():
                 raise ValueError("Message id cannot be empty")
+            if not username.strip():
+                raise ValueError("Username cannot be empty")
             cls.db.delete(username[message_id])
         except (TypeError, ValueError, KeyError) as e:
             logging.error(f"Failed to delete message {message_id} due to the following error: {e}")

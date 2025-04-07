@@ -22,7 +22,7 @@ class Menu:
         }
 
         self.user_commands = {
-            "inbox": self._handle_inbox,
+            "inbox": self._handle_inbox_menu,
             "info": self._handle_user_info,
             "help": self._handle_help,
             "log out": self._handle_logout,
@@ -30,7 +30,7 @@ class Menu:
         }
 
         self.admin_commands = {
-            "inbox": self._handle_inbox,
+            "inbox": self._handle_inbox_menu,
             "info": self._handle_server_info,
             "uptime": self._handle_uptime_display,
             "users": self._handle_users_management,
@@ -48,10 +48,11 @@ class Menu:
             "back": self._handle_return
         }
         self.inbox_commands = {
+            "show inbox": self._handle_show_inbox,
             "read": self._handle_reading_message,
             "delete": self._handle_message_deletion,
             "compose": self._handle_writing_message,
-            "back": self._handle_return, #poprawka, aby obsługiwało inne menu
+            "back": self._handle_return,
             "help": self._handle_help
         }
 
@@ -60,7 +61,7 @@ class Menu:
         if self.current_commands.keys() == self.user_management_commands.keys():
             self._enter_user_management_menu()
         elif self.current_commands.keys() == self.inbox_commands.keys():
-            self._enter_inbox_menu()
+            self._handle_inbox_menu()
         elif not self.server.user:
             self._set_logged_out_state()
         elif self.server.user.role == "admin":
@@ -87,14 +88,6 @@ class Menu:
         """Switch to user management menu state"""
         self.current_commands = load_menu_config("manage_users_menu", "logged_in", "admin")
         self.server.send("User management menu", (self.current_commands, "list"))
-
-    def _enter_inbox_menu(self):
-        """Switch to inbox menu state"""
-        if self.server.user.role == "user":
-            self.current_commands = load_menu_config("inbox_menu", "logged_in", "user")
-        else:
-            self.current_commands = load_menu_config("inbox_menu", "logged_in", "admin")
-        self.server.send(f"Inbox.\nWelcome {self.server.user.username}!", (self.current_commands, "list"))
 
     def _is_valid_command(self, command):
         if command in self.current_commands:
@@ -179,7 +172,14 @@ class Menu:
             #     pass
             return False
 
-    def _handle_inbox(self):
+    def _handle_inbox_menu(self):
+        if self.server.user.role == "admin":
+            self.current_commands = load_menu_config("inbox_menu", "logged_in", "admin")
+        else:
+            self.current_commands = load_menu_config("inbox_menu", "logged_in", "user")
+        self.server.send("Inbox menu", (self.current_commands, "list"))
+
+    def _handle_show_inbox(self):
         self.server.get_user_inbox()
 
     def _handle_reading_message(self):
@@ -217,7 +217,10 @@ class Menu:
 
     def _handle_return(self):
         """Return to the main Admin menu"""
-        self._set_admin_state()
+        if self.server.user.role == "admin":
+            self._set_admin_state()
+        else:
+            self._set_user_state()
 
     def _handle_server_shutdown(self):
         print("Shutting down...")

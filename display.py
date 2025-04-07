@@ -22,6 +22,9 @@ class Display:
                 elif display_type == "inbox" and data_content:
                     Display.display_inbox(message)
                     print()
+                elif display_type == "email" and data_content:
+                    Display.display_email(message)
+                    print()
             except (ValueError, TypeError):
                 logging.error(f"Error displaying message data")
                 print(f"Error displaying message")
@@ -71,21 +74,14 @@ class Display:
         print(table)
 
     @staticmethod
-    def display_email(email_num, message):
+    def display_email(message):
         if not message or not message.get("data"):
             print("No data to display")
             return
-        inbox = message["data"][0]
-        if not inbox:
+        email = message["data"][0]
+        if not email:
             print("No messages to display")
             return
-        messages = list(inbox.values())[0]
-        for field_name, field in messages[Display._map_email_id(email_num, messages)].items():
-            print(f"{field_name.title()}: {field}")
+        for field_name, field_content in email.items():
+            print(f"{field_name.title()}: {field_content}")
 
-    @staticmethod
-    def _map_email_id(email_num, messages_dict):
-        message_id_mapping = {num + 1: item for num, item in enumerate(list(messages_dict.keys()))}
-        for key in message_id_mapping.keys():
-            if key == email_num:
-                return message_id_mapping[key]

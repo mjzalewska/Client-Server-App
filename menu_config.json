@@ -46,6 +46,7 @@
   "inbox_menu": {
     "logged_in": {
       "user": {
+        "show inbox": "display inbox",
         "read": "read an email message",
         "delete": "remove a message from inbox",
         "compose": "write a message",

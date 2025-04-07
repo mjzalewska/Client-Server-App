@@ -35,54 +35,71 @@ class Message:
             raise
 
     @staticmethod
-    def read(username, message_id):
+    def read(username, message_num):
         """Read the contents of a selected message"""
         if not isinstance(username, str) or not username.strip():
             raise TypeError("Invalid username")
         if not UserDAO.user_exists(username):
             raise KeyError("User not found")
-        if not message_id.isdigit():
-            raise TypeError("Message index must be an integer")
-        if not message_id.strip():
+        if not message_num.strip():
             raise ValueError("Message index cannot be empty")
-        if message_id not in MessageDAO.get_all(username):
-            raise KeyError("Message not found!")
+        if not message_num.isdigit():
+            raise TypeError("Message index must be an integer")
+        messages = MessageDAO.get_all(username)
+
         try:
-            return MessageDAO.get_all(username)[message_id]
+            message_id = Message._convert_email_id_to_email_num(
+                messages_dict=messages,
+                username=username,
+                message_num=message_num
+            )
+            if message_id not in messages[username]:
+                raise KeyError("Message not found!")
+            return messages[username][message_id]
         except (TypeError, KeyError, ValueError) as e:
             logging.error(f"Failed to load message: {e}")
             raise
 
     @staticmethod
-    def delete(username, message_id):
+    def delete(username, message_num):
         """Delete a single message from inbox"""
-        if not message_id.isdigit():
-            raise TypeError("Message index must be an integer")
-        if not message_id.strip():
+        if not isinstance(username, str) or not username.strip():
+            raise TypeError("Invalid username")
+        if not UserDAO.user_exists(username):
+            raise KeyError("User not found")
+        if not message_num.strip():
             raise ValueError("Message index cannot be empty")
-        if message_id not in MessageDAO.get_all(username):
-            raise KeyError("Message not found!")
+        if not message_num.isdigit():
+            raise TypeError("Message index must be an integer")
+        messages = MessageDAO.get_all(username)
         try:
+            message_id = Message._convert_email_id_to_email_num(
+                messages_dict=messages,
+                username=username,
+                message_num=message_num
+            )
+            if message_id not in messages[username]:
+                raise KeyError("Message not found!")
             MessageDAO.delete_message(username, message_id)
             return True
         except(TypeError, ValueError, KeyError) as e:
             logging.error(f"Failed to delete message: {e}")
             raise
 
-    def save(self, recipient, message):
+    def save(self, recipient, email):
         """Save message to recipient mailbox"""
         if not isinstance(recipient, str):
             raise TypeError("Recipient name must be a string")
         if not recipient.strip():
             raise ValueError("Recipient cannot be empty")
-        if not isinstance(message, dict):
-            raise TypeError(f"Incorrect message format: {type(message)}")
+        if not isinstance(email, dict):
+            raise TypeError(f"Incorrect message format: {type(email)}")
         try:
             if not UserDAO.user_exists(recipient):
                 raise KeyError(f"Recipient {recipient} not found")
             if len(MessageDAO.get_all(recipient)[recipient]) >= self.inbox_limit:
                 raise ValueError("Inbox limit exceeded.")
-            MessageDAO.save_message(recipient, message)
+            MessageDAO.save_message(recipient, email)
             return True
         except (TypeError, ValueError, KeyError) as e:
             logging.error(f"The following error appeared when saving the message to user {recipient} inbox")
@@ -100,3 +117,26 @@ class Message:
         except(TypeError, KeyError) as e:
             logging.error(f"Failed to retrieve messages from server: {e}")
             raise
+
+    @staticmethod
+    def _convert_email_id_to_email_num(messages_dict, username, message_num=None, message_id=None):
+        mapping = {str(num + 1): item for num, item in enumerate(list(messages_dict[username].keys()))}
+        if message_num is not None and message_id is not None:
+            raise ValueError("Parameters specified incorrectly")
+        elif message_num is None and message_id is None:
+            raise ValueError("Parameters specified incorrectly. Both parameters cannot be empty")
+        try:
+            if message_num is not None:
+                for num in mapping.keys():
+                    if num == message_num:
+                        return mapping[num]
+            elif message_id is not None:
+                for num, id_num in mapping.items():
+                    if id_num == message_id:
+                        return num
+        except ValueError:
+            logging.error(f"Parameters specified incorrectly for method:"
+                          f"{Message._convert_email_id_to_email_num.__name__}")
+
+message = Message()
+print(Message.get_inbox("jane")["jane"])
