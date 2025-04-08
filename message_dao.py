@@ -53,7 +53,13 @@ class MessageDAO:
                 raise ValueError("Message id cannot be empty")
             if not username.strip():
                 raise ValueError("Username cannot be empty")
-            cls.db.delete(username[message_id])
+            data = cls.db.get()
+            if username not in data:
+                raise KeyError(f"User{username} not found")
+            if message_id not in data[username]:
+                raise KeyError(f"Message {message_id} not found for user {username}")
+            del data[username][message_id]
+            cls.db.save(username, data[username])
         except (TypeError, ValueError, KeyError) as e:
             logging.error(f"Failed to delete message {message_id} due to the following error: {e}")
             raise
