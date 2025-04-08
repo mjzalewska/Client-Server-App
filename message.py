@@ -137,6 +137,3 @@ class Message:
         except ValueError:
             logging.error(f"Parameters specified incorrectly for method:"
                           f"{Message._convert_email_id_to_email_num.__name__}")
-
-message = Message()
-print(Message.get_inbox("jane")["jane"])
