@@ -8,15 +8,16 @@ class Message:
     def __init__(self):
         self.chars_limit = 255
         self.inbox_limit = 5
+        self.body = ""
 
     def compose(self, recipient, sender, from_email, to_email, subject, body):
         """Compose a new message"""
         date = datetime.utcnow()
         timestamp = datetime.strftime(date, "%Y-%m-%d% H:%M:%S")
-        if not all(isinstance(param, str) for param in [recipient, sender, from_email, to_email, subject, body]):
-            raise TypeError("All parameters must be strings")
         if not all(param.strip() for param in [recipient, to_email]):
             raise ValueError("Empty parameter error: recipient name and email cannot be empty", "")
+        if not all(isinstance(param, str) for param in [recipient, sender, from_email, to_email, subject, body]):
+            raise TypeError("All parameters must be strings")
         if len(body) > self.chars_limit:
             raise ValueError("Message length error: message exceeds 255 characters")
         try:
@@ -33,6 +34,28 @@ class Message:
         except (TypeError, ValueError) as e:
             logging.error(f"The following error occurred when composing new message: {e}")
             raise
+
+    def write_message(self):
+        """Write a message with a character limit."""
+        while True:
+            remaining = self.chars_limit - len(self.body)
+            print(f"\r({remaining} chars remaining) {self.body}", end="", flush=True)
+            char = input()
+            if char == "\n":
+                if self.body:
+                    print(f"\nFinal message: {self.body}")
+                    confirm = input("Send this message? (y/n): ").lower()
+                    if confirm == 'y':
+                        return self.body
+                else:
+                    continue
+            elif char == "\b" and self.body:
+                self.body = self.body[:-1]
+            elif remaining > 0:
+                self.body += char
+            print("\r" + " " * (len(self.body) + 30), flush=True)
+            print(f"Character count: {len(self.body)}/{self.chars_limit}")
+            print()
 
     @staticmethod
     def read(username, message_num):
@@ -88,10 +111,10 @@ class Message:
 
     def save(self, recipient, email):
         """Save message to recipient mailbox"""
-        if not isinstance(recipient, str):
-            raise TypeError("Recipient name must be a string")
         if not recipient.strip():
             raise ValueError("Recipient cannot be empty")
+        if not isinstance(recipient, str):
+            raise TypeError("Recipient name must be a string")
         if not isinstance(email, dict):
             raise TypeError(f"Incorrect message format: {type(email)}")
         try:
@@ -137,3 +160,7 @@ class Message:
         except ValueError:
             logging.error(f"Parameters specified incorrectly for method:"
                           f"{Message._convert_email_id_to_email_num.__name__}")
+
+
+message = Message()
+message.write_message()
