@@ -39,23 +39,22 @@ class Message:
         """Write a message with a character limit."""
         while True:
             remaining = self.chars_limit - len(self.body)
-            print(f"\r({remaining} chars remaining) {self.body}", end="", flush=True)
-            char = input()
-            if char == "\n":
+            print(f"({remaining} chars remaining) >>:  ", end="", flush=True)
+            line = input()
+            if not line:
                 if self.body:
-                    print(f"\nFinal message: {self.body}")
+                    print(f"\nFinal message: {self.body}\n")
                     confirm = input("Send this message? (y/n): ").lower()
                     if confirm == 'y':
+                        print(self.body, len(self.body))
                         return self.body
-                else:
                     continue
-            elif char == "\b" and self.body:
-                self.body = self.body[:-1]
+            if len(self.body) + len(line) + 1 <= self.chars_limit:
+                self.body += line + "\n"
             elif remaining > 0:
-                self.body += char
-            print("\r" + " " * (len(self.body) + 30), flush=True)
-            print(f"Character count: {len(self.body)}/{self.chars_limit}")
-            print()
+                self.body += line + "\n"
+            else:
+                print(f"Error: Adding this line would exceed the {self.chars_limit} character limit.") # convert to error + log +send
 
     @staticmethod
     def read(username, message_num):
