@@ -224,12 +224,15 @@ class Server:
             logging.error(f"Failed to  retrieve inbox for user {self.user.username}: {e}")
             self.send(f" Failed to display inbox for user {self.user.username}", status="error")
 
-    def process_writing_message(self, required_fields):
+    def process_sending_message(self):
+        pass
+
+    def process_composing_message(self, required_fields):
         message_data = get_user_input(self, required_fields)
         try:
             self.message.compose(recipient=message_data["recipient"], sender=self.user.username,
                                  from_email=self.user.email, to_email=message_data["to_email"],
-                                 subject=message_data["subject"], body=message_data["body"])
+                                 subject=message_data["subject"])
         except ValueError as e:
             if "length error" in str(e):
                 self.send(f"Message length limit ({self.message.chars_limit}chars) exceeded. Please try again",

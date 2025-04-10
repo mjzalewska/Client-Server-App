@@ -192,7 +192,7 @@ class Menu:
 
     def _handle_writing_message(self):
         required_fields = ["recipient", "to_email", "subject", "body"]
-        message = self.server.process_writing_message(required_fields) # send message + return to inbox
+        message = self.server.process_composing_message(required_fields)  # send message + return to inbox
         print(message)
 
     def _handle_sending_message(self):
