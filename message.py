@@ -13,17 +13,17 @@ class Message:
     def send(self):
         pass
 
-    def compose(self, recipient, sender, from_email, to_email, subject):
+    def send_message(self, recipient, sender, from_email, to_email, subject):
         """Compose a new message"""
         date = datetime.utcnow()
         timestamp = datetime.strftime(date, "%Y-%m-%d H:%M:%S")
-        body = self._write_message()
+        message_body = self.compose()
         if not all(param.strip() for param in [recipient, to_email]):
             raise ValueError("Empty parameter error: recipient name and email cannot be empty")
-        if not all(isinstance(param, str) for param in [recipient, sender, from_email, to_email, subject, body]):
+        if not all(isinstance(param, str) for param in [recipient, sender, from_email, to_email, subject, message_body]):
             raise TypeError("All parameters must be strings")
-        if len(body) > self.chars_limit:
-            raise ValueError(f"Message length error: message exceeds {self.chars_limit} characters")
+        # if len(message_body) > self.chars_limit:
+        #     raise ValueError(f"Message length error: message exceeds {self.chars_limit} characters")
         try:
             message_data = {
                 "recipient": recipient,
@@ -31,7 +31,7 @@ class Message:
                 "from_email": from_email,
                 "to_email": to_email,
                 "subject": subject,
-                "body": body,
+                "message text": message_body,
                 "timestamp": timestamp
             }
             return message_data
@@ -39,7 +39,7 @@ class Message:
             logging.error(f"The following error occurred when composing new message: {e}")
             raise
 
-    def _write_message(self):
+    def compose(self):
         """Write a message with a character limit."""
         try:
             while True:

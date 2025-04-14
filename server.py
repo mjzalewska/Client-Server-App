@@ -230,9 +230,9 @@ class Server:
     def process_composing_message(self, required_fields):
         message_data = get_user_input(self, required_fields)
         try:
-            self.message.compose(recipient=message_data["recipient"], sender=self.user.username,
-                                 from_email=self.user.email, to_email=message_data["to_email"],
-                                 subject=message_data["subject"])
+            self.message.send(recipient=message_data["recipient"], sender=self.user.username,
+                              from_email=self.user.email, to_email=message_data["to_email"],
+                              subject=message_data["subject"], message_text=message_data["message text"])
         except ValueError as e:
             if "length error" in str(e):
                 self.send(f"Message length limit ({self.message.chars_limit}chars) exceeded. Please try again",

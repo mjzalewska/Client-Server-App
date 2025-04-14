@@ -191,7 +191,7 @@ class Menu:
         self.server.process_deleting_message(required_fields)
 
     def _handle_writing_message(self):
-        required_fields = ["recipient", "to_email", "subject", "body"]
+        required_fields = ["recipient", "to_email", "subject", "message text"]
         message = self.server.process_composing_message(required_fields)  # send message + return to inbox
         print(message)
 
