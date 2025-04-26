@@ -224,31 +224,37 @@ class Server:
             logging.error(f"Failed to  retrieve inbox for user {self.user.username}: {e}")
             self.send(f" Failed to display inbox for user {self.user.username}", status="error")
 
-    def process_sending_message(self):
-        pass
-
-    def process_composing_message(self, required_fields):
+    def process_sending_email(self, required_fields):
         message_data = get_user_input(self, required_fields)
-        try:
-            self.message.send(recipient=message_data["recipient"], sender=self.user.username,
-                              from_email=self.user.email, to_email=message_data["to_email"],
-                              subject=message_data["subject"], message_text=message_data["message text"])
-        except ValueError as e:
-            if "length error" in str(e):
-                self.send(f"Message length limit ({self.message.chars_limit}chars) exceeded. Please try again",
-                          status="error")
-                logging.info(f"Failed to initialize new message: {e}")
-            else:
-                self.send("Recipient name and/or e-mail cannot be empty!", status="error")
-                logging.info(f"Failed to initialize new message: {e}")
-        except TypeError as e:
-            self.send(f"Invalid data input format!", status="error")
-            logging.info(f"Failed to initialize new message: {e}")
-        except Exception as e:
-            self.send("An unexpected error occurred. Please try again", status="error")
-            logging.info(f"Failed to initialize new message: {e}")
+        while True:
+            try:
+                message_text = get_user_input(self, "message text")
+                if message_text:
+                    self.send("Send message (y/n?")
+                    if self.receive().lower() == "y":
+                        self.message.send_message(recipient=message_data["recipient"], sender=self.user.username,
+                                                  from_email=self.user.email, to_email=message_data["to_email"],
+                                                  subject=message_data["subject"], message_text=message_text)
+                    else:
+                        self.send("Message not sent")
+                        break
 
-    def process_reading_message(self, required_fields):
+            except ValueError as e:
+                if "length error" in str(e):
+                    self.send(f"Message length limit ({self.message.chars_limit}chars) exceeded. Please try again",
+                              status="error")
+                    logging.info(f"Failed to initialize new message: {e}")
+                else:
+                    self.send("Recipient name and/or e-mail cannot be empty!", status="error")
+                    logging.info(f"Failed to initialize new message: {e}")
+            except TypeError as e:
+                self.send(f"Invalid data input format!", status="error")
+                logging.info(f"Failed to initialize new message: {e}")
+            except Exception as e:
+                self.send("An unexpected error occurred. Please try again", status="error")
+                logging.info(f"Failed to initialize new message: {e}")
+
+    def process_reading_email(self, required_fields):
         message_num = get_user_input(self, required_fields)["id"]
         try:
             selected_message = self.message.read(username=self.user.username, message_num=message_num)
@@ -274,7 +280,7 @@ class Server:
             self.send("An unexpected error occurred. Please try again", status="error")
             logging.info(f"Failed to retrieve message {message_num}: {e}")
 
-    def process_deleting_message(self, required_fields):
+    def process_deleting_email(self, required_fields):
         message_num = get_user_input(self, required_fields)["id"]
         try:
             if self.message.delete(username=self.user.username, message_num=message_num):

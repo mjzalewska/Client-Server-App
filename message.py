@@ -10,20 +10,15 @@ class Message:
         self.inbox_limit = 5
         self.body = ""
 
-    def send(self):
-        pass
-
-    def send_message(self, recipient, sender, from_email, to_email, subject):
+    def send_message(self, recipient, sender, from_email, to_email, subject, message_text):
         """Compose a new message"""
         date = datetime.utcnow()
         timestamp = datetime.strftime(date, "%Y-%m-%d H:%M:%S")
-        message_body = self.compose()
         if not all(param.strip() for param in [recipient, to_email]):
             raise ValueError("Empty parameter error: recipient name and email cannot be empty")
-        if not all(isinstance(param, str) for param in [recipient, sender, from_email, to_email, subject, message_body]):
+        if not all(
+                isinstance(param, str) for param in [recipient, sender, from_email, to_email, subject, message_text]):
             raise TypeError("All parameters must be strings")
-        # if len(message_body) > self.chars_limit:
-        #     raise ValueError(f"Message length error: message exceeds {self.chars_limit} characters")
         try:
             message_data = {
                 "recipient": recipient,
@@ -31,37 +26,26 @@ class Message:
                 "from_email": from_email,
                 "to_email": to_email,
                 "subject": subject,
-                "message text": message_body,
+                "message text": message_text,
                 "timestamp": timestamp
             }
-            return message_data
+            self.save(recipient, message_data)
+            return True
         except (TypeError, ValueError) as e:
             logging.error(f"The following error occurred when composing new message: {e}")
             raise
 
-    def compose(self):
+    def validate_len(self):
         """Write a message with a character limit."""
-        try:
-            while True:
-                remaining = self.chars_limit - len(self.body)
-                print(f"({remaining} chars remaining) >>:  ", end="", flush=True)
-                line = input()
-                if not line:
-                    if self.body:
-                        print(f"\nFinal message: {self.body}\n")
-                        confirm = input("Send this message? (y/n): ").lower()
-                        if confirm == 'y':
-                            return self.body
-                        continue
-                elif len(self.body) + len(line) + 1 <= self.chars_limit:
-                    self.body += line + "\n"
-                elif remaining > 0:
-                    self.body += line + "\n"
+        while True:
+            try:
+                if len(self.body) <= self.chars_limit:
+                    return True
                 else:
                     raise ValueError(f"Message length error: {self.chars_limit} character limit exceeded.")
-        except ValueError as e:
-            logging.error(f"Error initializing new message: {e}")
-            raise
+            except ValueError as e:
+                logging.error(f"Error initializing new message: {e}")
+                raise
 
     @staticmethod
     def read(username, message_num):
@@ -166,7 +150,6 @@ class Message:
         except ValueError:
             logging.error(f"Parameters specified incorrectly for method:"
                           f"{Message._convert_email_id_to_email_num.__name__}")
-
 
 # message = Message()
 # my_message = message.compose("ula_cebula", "jane", "cebula@mail.com", "jane.f@mail.com", "Wanna hang out tomorrow?")

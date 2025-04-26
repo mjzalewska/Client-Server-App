@@ -184,15 +184,15 @@ class Menu:
 
     def _handle_reading_message(self):
         required_fields = ["id"]
-        self.server.process_reading_message(required_fields) # return to inbox menu
+        self.server.process_reading_email(required_fields)  # return to inbox menu
 
     def _handle_message_deletion(self):
         required_fields = ["id"]
-        self.server.process_deleting_message(required_fields)
+        self.server.process_deleting_email(required_fields)
 
     def _handle_writing_message(self):
         required_fields = ["recipient", "to_email", "subject", "message text"]
-        message = self.server.process_composing_message(required_fields)  # send message + return to inbox
+        message = self.server.process_sending_email(required_fields)  # send message + return to inbox
         print(message)
 
     def _handle_sending_message(self):
